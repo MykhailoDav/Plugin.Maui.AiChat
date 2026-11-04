@@ -1,0 +1,9 @@
+{
+  "platformOptions": {
+    "Coverlet": {
+      "include": "[Plugin.Maui.AiChat]*",
+      "excludeByFile": "**/obj/**/*.cs",
+      "format": "cobertura"
+    }
+  }
+}
