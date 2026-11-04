@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Plugin.Maui.AiChat.Controls;
 using Plugin.Maui.AiChat.Theming;
 
@@ -44,17 +45,22 @@ public class AiChatView : ContentView
     {
         List = new CollectionView
         {
+            AutomationId = "AiChatList",
             SelectionMode = SelectionMode.None,
             ItemTemplate = new ChatItemTemplateSelector(this),
             Footer = new BoxView { HeightRequest = 8, Color = Colors.Transparent },
         };
-        List.Scrolled += (_, e) => _follow.OnScrolled(e.VerticalDelta, e.LastVisibleItemIndex, Session?.Items.Count ?? 0);
+        List.Scrolled += (_, e) => _follow.OnScrolled(e.VerticalDelta, e.VerticalOffset, e.LastVisibleItemIndex, Session?.Items.Count ?? 0, List.Height);
         Input = new ChatInputBar(this);
 
         var layout = new Grid { RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
         layout.Add(List);
         layout.Add(Input, 0, 1);
         Content = layout;
+
+        // Clear of the status bar, notch and home indicator on an edge-to-edge page.
+        SafeAreaEdges = new SafeAreaEdges(SafeAreaRegions.Container);
+        Loaded += OnLoaded;
 
         SetBinding(IsSessionBusyProperty, Binding.Create(static (AiChatView view) => view.Session?.IsBusy, source: this));
         ScrollToItem = index => List.ScrollTo(index, position: ScrollToPosition.End, animate: false);
@@ -106,11 +112,37 @@ public class AiChatView : ContentView
     /// <summary>Scrolls the list to the end of an item; replaceable because a list without a handler does not scroll.</summary>
     internal Action<int> ScrollToItem { get; set; }
 
+    /// <summary>
+    /// Follows the end when a row changes size: the platform measures a row after its content changes, so a scroll
+    /// made at the change itself stops short of the new end.
+    /// </summary>
+    internal View Track(View row)
+    {
+        var height = row.Height;
+        row.SizeChanged += (_, _) =>
+        {
+            if (row.Height < height)
+            {
+                _follow.OnRowShrank(height - row.Height);
+            }
+
+            height = row.Height;
+            if (_follow.IsFollowing)
+            {
+                ScheduleScrollToEnd();
+            }
+        };
+        return row;
+    }
+
     internal Task SendAsync(string text)
     {
         _follow.Follow();
         return Session!.SendAsync(text);
     }
+
+    [ExcludeFromCodeCoverage(Justification = "Loaded needs a window; the UI tests cover it.")]
+    private void OnLoaded(object? sender, EventArgs e) => KeyboardSafeArea.Apply(this);
 
     private static void OnSessionChanged(BindableObject bindable, object? oldValue, object? newValue)
     {

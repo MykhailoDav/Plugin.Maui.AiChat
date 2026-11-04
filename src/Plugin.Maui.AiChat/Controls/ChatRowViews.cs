@@ -16,11 +16,11 @@ internal sealed class ChatItemTemplateSelector : DataTemplateSelector
 
     internal ChatItemTemplateSelector(AiChatView owner)
     {
-        _user = new DataTemplate(() => new UserMessageView(owner));
-        _assistant = new DataTemplate(() => new AssistantMessageView());
-        _reasoning = new DataTemplate(() => new ReasoningView());
-        _tool = new DataTemplate(() => new ToolCallView(owner));
-        _error = new DataTemplate(() => new ErrorView(owner));
+        _user = new DataTemplate(() => owner.Track(new UserMessageView(owner)));
+        _assistant = new DataTemplate(() => owner.Track(new AssistantMessageView()));
+        _reasoning = new DataTemplate(() => owner.Track(new ReasoningView()));
+        _tool = new DataTemplate(() => owner.Track(new ToolCallView(owner)));
+        _error = new DataTemplate(() => owner.Track(new ErrorView(owner)));
     }
 
     protected override DataTemplate OnSelectTemplate(object item, BindableObject container) => item switch
@@ -38,7 +38,7 @@ internal sealed class UserMessageView : ContentView
 {
     internal UserMessageView(AiChatView owner)
     {
-        var text = new Label { TextColor = ChatTheme.OnAccent, FontSize = 16, LineBreakMode = LineBreakMode.WordWrap };
+        var text = new Label { AutomationId = "AiChatUserMessage", TextColor = ChatTheme.OnAccent, FontSize = 16, LineBreakMode = LineBreakMode.WordWrap };
         text.SetBinding(Label.TextProperty, static (UserMessageItem item) => item.Text);
 
         var bubble = new Border
@@ -61,12 +61,13 @@ internal sealed class AssistantMessageView : ContentView
 {
     internal AssistantMessageView()
     {
-        Markdown = new MarkdownView();
+        Markdown = new MarkdownView { AutomationId = "AiChatAnswer" };
         Markdown.SetBinding(MarkdownView.TextProperty, static (AssistantMessageItem item) => item.Text);
         Markdown.SetBinding(MarkdownView.IsStreamingProperty, static (AssistantMessageItem item) => item.IsStreaming);
 
         Copy = new CopyButton(() => (BindingContext as AssistantMessageItem)?.Text, ChatStrings.CopyAnswer)
         {
+            AutomationId = "AiChatCopyAnswer",
             HorizontalOptions = LayoutOptions.Start,
             Margin = new Thickness(-8, 0, 0, 0),
         };
@@ -85,7 +86,7 @@ internal sealed class ReasoningView : ContentView
 {
     internal ReasoningView()
     {
-        Header = new Label { FontSize = 14 };
+        Header = new Label { AutomationId = "AiChatReasoning", FontSize = 14 };
         ChatTheme.Apply(Header, Label.TextColorProperty, ChatTheme.Muted);
         Header.SetBinding(Label.TextProperty, static (ReasoningItem item) => item.Header);
         Header.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(Toggle) });
@@ -126,7 +127,7 @@ internal sealed class ToolCallView : ContentView
         ChatTheme.Apply(name, Label.TextColorProperty, ChatTheme.Text);
         name.SetBinding(Label.TextProperty, static (ToolCallItem item) => item.Name);
 
-        var status = new Label { FontSize = 13, VerticalTextAlignment = TextAlignment.Center };
+        var status = new Label { AutomationId = "AiChatToolStatus", FontSize = 13, VerticalTextAlignment = TextAlignment.Center };
         ChatTheme.Apply(status, Label.TextColorProperty, ChatTheme.Muted);
         status.SetBinding(Label.TextProperty, static (ToolCallItem item) => item.StatusText);
 
@@ -136,11 +137,11 @@ internal sealed class ToolCallView : ContentView
         arguments.SetBinding(IsVisibleProperty, static (ToolCallItem item) => item.HasArguments);
         arguments.SetBinding(Label.MaxLinesProperty, static (ToolCallItem item) => item.ArgumentLines);
 
-        Approve = new Button { Text = ChatStrings.Approve, TextColor = ChatTheme.OnAccent, FontSize = 14, CornerRadius = 16, Padding = new Thickness(16, 0), MinimumHeightRequest = 36 };
+        Approve = new Button { AutomationId = "AiChatApprove", Text = ChatStrings.Approve, FontAttributes = FontAttributes.Bold, TextColor = ChatTheme.OnAccent, FontSize = 14, CornerRadius = 16, Padding = new Thickness(16, 0), MinimumHeightRequest = 36 };
         Approve.SetBinding(BackgroundColorProperty, static (AiChatView view) => view.AccentColor, source: owner);
         Approve.Clicked += (_, _) => Respond(approved: true);
 
-        Reject = new Button { Text = ChatStrings.Reject, BackgroundColor = Colors.Transparent, BorderWidth = 1, FontSize = 14, CornerRadius = 16, Padding = new Thickness(16, 0), MinimumHeightRequest = 36 };
+        Reject = new Button { AutomationId = "AiChatReject", Text = ChatStrings.Reject, FontAttributes = FontAttributes.None, BackgroundColor = Colors.Transparent, BorderWidth = 1, FontSize = 14, CornerRadius = 16, Padding = new Thickness(16, 0), MinimumHeightRequest = 36 };
         ChatTheme.Apply(Reject, Button.TextColorProperty, ChatTheme.Text);
         ChatTheme.Apply(Reject, Button.BorderColorProperty, ChatTheme.Line);
         Reject.Clicked += (_, _) => Respond(approved: false);
@@ -188,11 +189,11 @@ internal sealed class ErrorView : ContentView
     {
         _owner = owner;
 
-        var message = new Label { FontSize = 14, LineBreakMode = LineBreakMode.WordWrap };
+        var message = new Label { AutomationId = "AiChatError", FontSize = 14, LineBreakMode = LineBreakMode.WordWrap };
         ChatTheme.Apply(message, Label.TextColorProperty, ChatTheme.ErrorText);
         message.SetBinding(Label.TextProperty, static (ErrorItem item) => item.Message);
 
-        Retry = new Button { Text = ChatStrings.Retry, BackgroundColor = Colors.Transparent, FontSize = 14, Padding = new Thickness(0), HorizontalOptions = LayoutOptions.Start, MinimumHeightRequest = 32 };
+        Retry = new Button { AutomationId = "AiChatRetry", Text = ChatStrings.Retry, FontAttributes = FontAttributes.Bold, BackgroundColor = Colors.Transparent, FontSize = 14, Padding = new Thickness(0), HorizontalOptions = LayoutOptions.Start, MinimumHeightRequest = 32 };
         ChatTheme.Apply(Retry, Button.TextColorProperty, ChatTheme.ErrorText);
         Retry.SetBinding(IsVisibleProperty, static (ErrorItem item) => item.CanRetry);
         Retry.Clicked += OnRetryClicked;

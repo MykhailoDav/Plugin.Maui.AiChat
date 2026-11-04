@@ -110,7 +110,7 @@ public class AiChatViewTests
         await session.SendAsync("First");
         Assert.Equal(1, scrolls[^1]);
 
-        view.Follow.OnScrolled(verticalDelta: -40, lastVisibleIndex: 0, count: 2);
+        view.Follow.OnScrolled(delta: -40, offset: 0, lastVisibleIndex: 0, count: 2, viewport: 100);
         scrolls.Clear();
         await session.SendAsync("Second");
         Assert.Empty(scrolls);
@@ -152,39 +152,105 @@ public class AiChatViewTests
     }
 
     [Fact]
+    public void Follows_the_end_when_a_row_grows()
+    {
+        var session = new AiChatSession(new ScriptedChatClient());
+        session.Load([new ChatMessage(ChatRole.User, "a"), new ChatMessage(ChatRole.Assistant, "b")]);
+        var view = new AiChatView { Session = session };
+        var scrolls = new List<int>();
+        view.ScrollToItem = scrolls.Add;
+        var selector = (DataTemplateSelector)view.List.ItemTemplate;
+        var row = (View)selector.SelectTemplate(session.Items[1], view.List).CreateContent();
+
+        row.Layout(new Rect(0, 0, 300, 100));
+        Assert.Equal([1], scrolls);
+
+        view.Follow.OnScrolled(-40, 0, 0, 2, 100);
+        row.Layout(new Rect(0, 0, 300, 200));
+        Assert.Equal([1], scrolls);
+    }
+
+    [Fact]
     public void Learns_from_the_users_scrolling()
     {
         var view = new AiChatView();
-        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = -30, LastVisibleItemIndex = 0 });
+        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = 400, VerticalOffset = 400, LastVisibleItemIndex = -1 });
+        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = -10, VerticalOffset = 390, LastVisibleItemIndex = -1 });
         Assert.False(view.Follow.IsFollowing);
-
-        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = 30, LastVisibleItemIndex = -1 });
-        Assert.True(view.Follow.IsFollowing);
 
         view.Session = new AiChatSession(new ScriptedChatClient());
         view.Session.Load([new ChatMessage(ChatRole.User, "a"), new ChatMessage(ChatRole.Assistant, "b")]);
-        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = -30, LastVisibleItemIndex = 0 });
-        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = 30, LastVisibleItemIndex = 0 });
+        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = 400, VerticalOffset = 400, LastVisibleItemIndex = 1 });
+        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = -300, VerticalOffset = 100, LastVisibleItemIndex = 0 });
         Assert.False(view.Follow.IsFollowing);
-        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = 30, LastVisibleItemIndex = 1 });
+        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = 290, VerticalOffset = 390, LastVisibleItemIndex = 1 });
         Assert.True(view.Follow.IsFollowing);
     }
 
-    [Theory]
-    [InlineData(-2, 0, 3, true)]
-    [InlineData(-10, 2, 3, false)]
-    [InlineData(5, 1, 3, true)]
-    public void Decides_when_to_follow(double delta, int lastVisible, int count, bool following)
+    [Fact]
+    public void A_shrinking_row_does_not_stop_following()
+    {
+        var session = new AiChatSession(new ScriptedChatClient());
+        session.Load([new ChatMessage(ChatRole.User, "a"), new ChatMessage(ChatRole.Assistant, "b")]);
+        var view = new AiChatView { Session = session };
+        view.ScrollToItem = _ => { };
+        var row = (View)((DataTemplateSelector)view.List.ItemTemplate).SelectTemplate(session.Items[1], view.List).CreateContent();
+        row.Layout(new Rect(0, 0, 300, 200));
+        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = 100, VerticalOffset = 100, LastVisibleItemIndex = 1 });
+
+        row.Layout(new Rect(0, 0, 300, 195));
+        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = -5, VerticalOffset = 95, LastVisibleItemIndex = 1 });
+        Assert.True(view.Follow.IsFollowing);
+
+        view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = -15, VerticalOffset = 80, LastVisibleItemIndex = 1 });
+        Assert.False(view.Follow.IsFollowing);
+    }
+
+    [Fact]
+    public void Layout_explains_only_as_much_as_rows_shrank()
     {
         var follow = new FollowEnd();
-        follow.OnScrolled(-10, 0, 3);
-        if (following && delta > -4 && lastVisible < count - 1)
-        {
-            follow.Follow();
-        }
+        follow.OnRowShrank(5);
+        follow.OnScrolled(-3, 497, 3, 4, viewport: 400);
+        follow.OnScrolled(-2.5, 494.5, 3, 4, viewport: 400);
+        Assert.True(follow.IsFollowing);
 
-        follow.OnScrolled(delta, lastVisible, count);
+        follow.OnScrolled(-1.5, 493, 3, 4, viewport: 400);
+        Assert.False(follow.IsFollowing);
+    }
 
-        Assert.Equal(following, follow.IsFollowing);
+    [Fact]
+    public void A_scroll_down_forgets_old_shrinks()
+    {
+        var follow = new FollowEnd();
+        follow.OnRowShrank(50);
+        follow.OnScrolled(10, 510, 3, 4, viewport: 400);
+        follow.OnScrolled(-20, 490, 3, 4, viewport: 400);
+
+        Assert.False(follow.IsFollowing);
+    }
+
+    [Fact]
+    public void Follows_again_back_at_the_end()
+    {
+        var follow = new FollowEnd();
+        follow.OnScrolled(500, 500, 3, 4, viewport: 100);
+        follow.OnScrolled(-200, 300, 2, 4, viewport: 100);
+        Assert.False(follow.IsFollowing);
+
+        follow.OnScrolled(160, 460, 2, 4, viewport: 100);
+        Assert.False(follow.IsFollowing);
+        follow.OnScrolled(-20, 440, 3, 4, viewport: 100);
+        follow.OnScrolled(1, 441, 3, 4, viewport: 100);
+        Assert.False(follow.IsFollowing);
+        follow.OnScrolled(19, 460, 3, 4, viewport: 100);
+        Assert.True(follow.IsFollowing);
+
+        follow.OnScrolled(-160, 300, 3, 4, viewport: 100);
+        Assert.False(follow.IsFollowing);
+        follow.Follow();
+        Assert.True(follow.IsFollowing);
+        follow.OnScrolled(10, 10, 0, 1, viewport: 1000);
+        Assert.True(follow.IsFollowing);
     }
 }

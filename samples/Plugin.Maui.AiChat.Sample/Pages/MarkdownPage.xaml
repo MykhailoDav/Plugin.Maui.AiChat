@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- MarkdownView on its own: edit the source, or replay it a few characters at a time as a model would stream it. -->
+<ContentPage x:Class="Plugin.Maui.AiChat.Sample.Pages.MarkdownPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:chat="clr-namespace:Plugin.Maui.AiChat;assembly=Plugin.Maui.AiChat"
+             xmlns:vm="clr-namespace:Plugin.Maui.AiChat.Sample.ViewModels"
+             x:DataType="vm:MarkdownViewModel"
+             Title="Markdown">
+
+  <Grid RowDefinitions="Auto,*,Auto,2*" Padding="16,8" RowSpacing="8">
+    <Label Style="{StaticResource Intro}"
+           Text="Replay streams the text three characters at a time. Turn Streaming-safe off to see the raw markup flash." />
+    <Editor Grid.Row="1" Style="{StaticResource SourceEditor}" Text="{Binding Source}" AutomationId="MarkdownSource" />
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+      <Button Text="Replay" Command="{Binding ReplayCommand}" AutomationId="Replay" />
+      <Label Grid.Column="1" Text="Streaming-safe" VerticalOptions="Center" />
+      <Switch Grid.Column="2" IsToggled="{Binding StreamingSafe}" VerticalOptions="Center" AutomationId="StreamingSafe" />
+    </Grid>
+    <Border Grid.Row="3" Style="{StaticResource Card}">
+      <ScrollView>
+        <chat:MarkdownView Text="{Binding Preview}" IsStreaming="{Binding IsStreaming}" AutomationId="MarkdownPreview" />
+      </ScrollView>
+    </Border>
+  </Grid>
+
+</ContentPage>

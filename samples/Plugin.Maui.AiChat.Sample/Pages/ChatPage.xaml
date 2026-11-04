@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- The whole chat is one view bound to the session in the view model. The empty view suggests what to ask. -->
+<ContentPage x:Class="Plugin.Maui.AiChat.Sample.Pages.ChatPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:chat="clr-namespace:Plugin.Maui.AiChat;assembly=Plugin.Maui.AiChat"
+             xmlns:vm="clr-namespace:Plugin.Maui.AiChat.Sample.ViewModels"
+             x:DataType="vm:ChatViewModel"
+             Title="{Binding Title}">
+
+  <ContentPage.ToolbarItems>
+    <ToolbarItem Text="New chat" Command="{Binding NewChatCommand}" AutomationId="NewChat" />
+  </ContentPage.ToolbarItems>
+
+  <chat:AiChatView x:Name="Chat" Session="{Binding Session}" AccentColor="{StaticResource Primary}">
+    <chat:AiChatView.EmptyView>
+      <VerticalStackLayout Padding="24" Spacing="10" VerticalOptions="Center" x:DataType="vm:ChatViewModel"
+                           BindingContext="{Binding Source={x:Reference Chat}, Path=BindingContext, x:DataType=chat:AiChatView}">
+        <Label Text="Ask anything" FontSize="24" FontAttributes="Bold" HorizontalOptions="Center"
+               SemanticProperties.HeadingLevel="Level1" />
+        <Label Style="{StaticResource Intro}" HorizontalTextAlignment="Center" Margin="0,0,0,8"
+               Text="The demo model answers offline. Connect a real one on the Model tab." />
+        <Button Style="{StaticResource SecondaryButton}" Text="Show me some Markdown"
+                Command="{Binding AskCommand}" CommandParameter="Show me some Markdown" />
+        <Button Style="{StaticResource SecondaryButton}" Text="What's the weather in Lviv?"
+                Command="{Binding AskCommand}" CommandParameter="What's the weather in Lviv?" />
+        <Button Style="{StaticResource SecondaryButton}" Text="Think it through: is 1001 prime?"
+                Command="{Binding AskCommand}" CommandParameter="Think it through: is 1001 prime?" />
+        <Button Style="{StaticResource SecondaryButton}" Text="Make it fail"
+                Command="{Binding AskCommand}" CommandParameter="Make it fail" />
+      </VerticalStackLayout>
+    </chat:AiChatView.EmptyView>
+  </chat:AiChatView>
+
+</ContentPage>

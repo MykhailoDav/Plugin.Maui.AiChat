@@ -180,7 +180,9 @@ public class MarkdownViewTests
 
         var header = (ContentView)grid.Children[0];
         Assert.Equal(ChatTheme.Surface.Light, header.BackgroundColor);
-        Assert.Equal(FontAttributes.Bold, ((Label)header.Content).FontAttributes);
+        var headerLabel = (Label)header.Content;
+        Assert.Equal(FontAttributes.Bold, headerLabel.FontAttributes);
+        Assert.False(headerLabel.FormattedText.Spans[0].IsSet(Span.FontAttributesProperty), "The span takes the label's bold.");
 
         var body = grid.Children.Skip(4).Cast<ContentView>().ToList();
         Assert.Equal(

@@ -8,6 +8,7 @@ namespace Plugin.Maui.AiChat.Markdown;
 internal sealed class MarkdownCodeBlock : Border
 {
     private readonly Label _code;
+    private readonly ScrollView _scroll;
 
     internal MarkdownCodeBlock(MarkdownStyle style, string code, string? language)
     {
@@ -27,7 +28,7 @@ internal sealed class MarkdownCodeBlock : Border
         };
         ChatTheme.Apply(languageLabel, Label.TextColorProperty, ChatTheme.Muted);
 
-        CopyButton = new CopyButton(() => Code, ChatStrings.CopyCode);
+        CopyButton = new CopyButton(() => Code, ChatStrings.CopyCode) { AutomationId = "AiChatCopyCode" };
 
         var header = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
         header.Add(languageLabel);
@@ -50,11 +51,8 @@ internal sealed class MarkdownCodeBlock : Border
             ChatTheme.Apply(_code, Label.TextColorProperty, ChatTheme.Text);
         }
 
-        Content = new VerticalStackLayout
-        {
-            header,
-            new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = _code },
-        };
+        _scroll = new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = _code };
+        Content = new VerticalStackLayout { header, _scroll };
     }
 
     internal string? Language { get; }
@@ -62,7 +60,13 @@ internal sealed class MarkdownCodeBlock : Border
     internal string Code
     {
         get => _code.Text;
-        set => _code.Text = value;
+        set
+        {
+            _code.Text = value;
+            // A horizontal scroll view keeps the height it measured first, so a block that grows while it streams
+            // would show only its first lines.
+            ((IView)_scroll).InvalidateMeasure();
+        }
     }
 
     internal CopyButton CopyButton { get; }

@@ -15,6 +15,7 @@ internal sealed class CopyButton : Button
         _text = text;
         Text = ChatStrings.Copy;
         FontSize = 12;
+        FontAttributes = FontAttributes.None;
         Padding = new Thickness(8, 0);
         MinimumHeightRequest = 32;
         BackgroundColor = Colors.Transparent;

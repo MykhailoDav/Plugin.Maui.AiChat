@@ -80,7 +80,13 @@ internal sealed partial class MarkdownRenderer
 
     private Span CreateSpan(string text, InlineStyle style)
     {
-        var span = new Span { Text = text, FontAttributes = style.Attributes };
+        var span = new Span { Text = text };
+        // Set only when there is one: a span that sets None hides the bold of a heading or table header.
+        if (style.Attributes != FontAttributes.None)
+        {
+            span.FontAttributes = style.Attributes;
+        }
+
         var decorations = TextDecorations.None;
         if (style.Strikethrough)
         {

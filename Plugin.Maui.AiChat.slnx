@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Plugin.Maui.AiChat/Plugin.Maui.AiChat.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Plugin.Maui.AiChat.Sample/Plugin.Maui.AiChat.Sample.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Plugin.Maui.AiChat.Tests/Plugin.Maui.AiChat.Tests.csproj" />
+  </Folder>
+</Solution>

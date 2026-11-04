@@ -17,6 +17,7 @@ internal sealed class ChatInputBar : ContentView
 
         Editor = new Editor
         {
+            AutomationId = "AiChatMessageField",
             AutoSize = EditorAutoSizeOption.TextChanges,
             MaximumHeightRequest = 140,
             FontSize = 16,
@@ -30,7 +31,10 @@ internal sealed class ChatInputBar : ContentView
 
         Button = new Button
         {
+            AutomationId = "AiChatSendButton",
             WidthRequest = 36,
+            MinimumWidthRequest = 36,
+            MinimumHeightRequest = 36,
             HeightRequest = 36,
             CornerRadius = 18,
             Padding = 0,
