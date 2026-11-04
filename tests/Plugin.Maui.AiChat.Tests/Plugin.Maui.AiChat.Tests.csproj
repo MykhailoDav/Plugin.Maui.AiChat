@@ -21,6 +21,8 @@
     -->
     <PackageReference Include="coverlet.MTP" />
     <PackageReference Include="Microsoft.Maui.Controls" />
+    <!-- FunctionInvokingChatClient, to test tool approval against the real protocol. -->
+    <PackageReference Include="Microsoft.Extensions.AI" />
   </ItemGroup>
 
   <ItemGroup>

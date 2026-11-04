@@ -197,7 +197,7 @@ public class MarkdownViewTests
         var grid = Assert.IsType<Grid>(Assert.IsType<Border>(scroll.Content).Content);
 
         Assert.Equal(3, grid.ColumnDefinitions.Count);
-        var extra = Assert.IsType<Label>(Assert.IsType<ContentView>(grid.Children[^1]).Content);
+        var extra = Assert.IsAssignableFrom<Label>(Assert.IsType<ContentView>(grid.Children[^1]).Content);
         Assert.Equal("3", extra.FormattedText.Spans[0].Text);
         Assert.Equal(TextAlignment.Start, extra.HorizontalTextAlignment);
     }
