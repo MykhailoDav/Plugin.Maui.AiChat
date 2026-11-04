@@ -26,7 +26,10 @@ internal abstract class StreamedTextItem(string text, object? messageKey, bool i
     private static readonly PropertyChangedEventArgs TextChanged = new(nameof(Text));
     private static readonly PropertyChangedEventArgs IsStreamingChanged = new(nameof(IsStreaming));
 
-    public string Text { get; private set; } = text;
+    private string _text = text;
+
+    // Get-only: the binding generator writes back through any setter, and only Append may change the text.
+    public string Text => _text;
 
     public bool IsStreaming
     {
@@ -47,7 +50,7 @@ internal abstract class StreamedTextItem(string text, object? messageKey, bool i
 
     internal void Append(string text)
     {
-        Text += text;
+        _text += text;
         Raise(TextChanged);
     }
 

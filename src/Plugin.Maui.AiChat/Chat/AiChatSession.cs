@@ -21,6 +21,8 @@ public sealed class AiChatSession : INotifyPropertyChanged
     private readonly List<ChatMessage> _history = [];
     private readonly ChatItemBuilder _items = new();
     private readonly IDispatcher? _dispatcher;
+    // Weak, so a view that shows a session kept by a view model can still be collected with its page.
+    private readonly WeakEventManager _itemsChanged = new();
     private CancellationTokenSource? _run;
     // Changes when Clear or Load replaces the conversation, so a response that was cut off leaves the new one alone.
     private int _generation;
@@ -29,6 +31,7 @@ public sealed class AiChatSession : INotifyPropertyChanged
     private int _storedByService;
     private int _retryHistoryCount = -1;
     private int _retryItemCount;
+    private bool _isBusy;
 
     /// <summary>Creates a session for a chat client.</summary>
     /// <param name="chatClient">
@@ -47,6 +50,7 @@ public sealed class AiChatSession : INotifyPropertyChanged
         ChatClient = chatClient;
         _dispatcher = dispatcher;
         Messages = _history.AsReadOnly();
+        _items.Changed += (_, e) => _itemsChanged.HandleEvent(this, e, nameof(ItemsChanged));
     }
 
     /// <summary>Occurs when <see cref="IsBusy"/> changes.</summary>
@@ -75,26 +79,16 @@ public sealed class AiChatSession : INotifyPropertyChanged
     public IReadOnlyList<ChatMessage> Messages { get; }
 
     /// <summary>Gets whether a response is in progress.</summary>
-    public bool IsBusy
-    {
-        get;
-        private set
-        {
-            if (field != value)
-            {
-                field = value;
-                PropertyChanged?.Invoke(this, IsBusyChanged);
-            }
-        }
-    }
+    // Get-only: the binding generator writes back through any setter, even a private one.
+    public bool IsBusy => _isBusy;
 
     internal ObservableCollection<ChatItem> Items => _items.Items;
 
     /// <summary>Raised when a row is added or its text grows.</summary>
     internal event EventHandler? ItemsChanged
     {
-        add => _items.Changed += value;
-        remove => _items.Changed -= value;
+        add => _itemsChanged.AddEventHandler(value);
+        remove => _itemsChanged.RemoveEventHandler(value);
     }
 
     /// <summary>
@@ -183,6 +177,15 @@ public sealed class AiChatSession : INotifyPropertyChanged
         return RunCoreAsync(CancellationToken.None);
     }
 
+    private void SetBusy(bool busy)
+    {
+        if (_isBusy != busy)
+        {
+            _isBusy = busy;
+            PropertyChanged?.Invoke(this, IsBusyChanged);
+        }
+    }
+
     private void Reset()
     {
         // Detached before the cancel: a canceled stream can resume inside Cancel(), and must see that it was cut off.
@@ -195,7 +198,7 @@ public sealed class AiChatSession : INotifyPropertyChanged
         _conversationId = null;
         _storedByService = 0;
         _retryHistoryCount = -1;
-        IsBusy = false;
+        SetBusy(false);
     }
 
     private Task RunAsync(ChatMessage request, CancellationToken cancellationToken)
@@ -213,7 +216,7 @@ public sealed class AiChatSession : INotifyPropertyChanged
         _items.DisableRetry();
         using var run = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _run = run;
-        IsBusy = true;
+        SetBusy(true);
 
         var (messages, options) = CreateRequest();
         var updates = new List<ChatResponseUpdate>();
@@ -253,7 +256,7 @@ public sealed class AiChatSession : INotifyPropertyChanged
         _run = null;
         AddToHistory(updates, status);
         _items.End(status, error);
-        IsBusy = false;
+        SetBusy(false);
         ResponseCompleted?.Invoke(this, new AiChatResponseEventArgs(updates.ToChatResponse(), status, error));
     }
 

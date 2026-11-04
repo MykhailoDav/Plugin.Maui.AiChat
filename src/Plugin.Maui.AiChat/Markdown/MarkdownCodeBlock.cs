@@ -1,5 +1,5 @@
 using Microsoft.Maui.Controls.Shapes;
-using Plugin.Maui.AiChat.Platform;
+using Plugin.Maui.AiChat.Controls;
 using Plugin.Maui.AiChat.Theming;
 
 namespace Plugin.Maui.AiChat.Markdown;
@@ -7,10 +7,7 @@ namespace Plugin.Maui.AiChat.Markdown;
 /// <summary>A code block: its language, a Copy button, and the code unwrapped in a horizontal scroll view.</summary>
 internal sealed class MarkdownCodeBlock : Border
 {
-    internal static readonly TimeSpan CopiedFeedback = TimeSpan.FromSeconds(2);
-
     private readonly Label _code;
-    private readonly Button _copy;
 
     internal MarkdownCodeBlock(MarkdownStyle style, string code, string? language)
     {
@@ -30,21 +27,11 @@ internal sealed class MarkdownCodeBlock : Border
         };
         ChatTheme.Apply(languageLabel, Label.TextColorProperty, ChatTheme.Muted);
 
-        _copy = new Button
-        {
-            Text = ChatStrings.Copy,
-            FontSize = 12,
-            Padding = new Thickness(10, 0),
-            MinimumHeightRequest = 32,
-            BackgroundColor = Colors.Transparent,
-        };
-        ChatTheme.Apply(_copy, Button.TextColorProperty, ChatTheme.Muted);
-        SemanticProperties.SetDescription(_copy, ChatStrings.CopyCode);
-        _copy.Clicked += OnCopyClicked;
+        CopyButton = new CopyButton(() => Code, ChatStrings.CopyCode);
 
         var header = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
         header.Add(languageLabel);
-        header.Add(_copy, 1);
+        header.Add(CopyButton, 1);
 
         _code = new Label
         {
@@ -78,12 +65,5 @@ internal sealed class MarkdownCodeBlock : Border
         set => _code.Text = value;
     }
 
-    internal Button CopyButton => _copy;
-
-    private async void OnCopyClicked(object? sender, EventArgs e)
-    {
-        await PlatformActions.CopyText(Code).ConfigureAwait(true);
-        _copy.Text = ChatStrings.Copied;
-        Dispatcher.DispatchDelayed(CopiedFeedback, () => _copy.Text = ChatStrings.Copy);
-    }
+    internal CopyButton CopyButton { get; }
 }
