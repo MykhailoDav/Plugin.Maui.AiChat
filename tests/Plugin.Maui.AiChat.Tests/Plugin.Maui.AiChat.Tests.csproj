@@ -26,6 +26,8 @@
     <!-- The clients of the doc samples (Docs/DocSamplesTests.cs). -->
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="OllamaSharp" />
+    <PackageReference Include="Anthropic" />
+    <PackageReference Include="Google.GenAI" />
   </ItemGroup>
 
   <ItemGroup>

@@ -11,8 +11,15 @@ the mistakes to avoid. Everything not listed here does not exist.
 - Namespace: `Plugin.Maui.AiChat` (C#), `xmlns:chat="clr-namespace:Plugin.Maui.AiChat;assembly=Plugin.Maui.AiChat"`
   (XAML).
 - Dependencies: Microsoft.Maui.Controls ≥ 10.0.0, Microsoft.Extensions.AI.Abstractions ≥ 10.11.0, Markdig. A chat client
-  comes from another package, for example `Microsoft.Extensions.AI.OpenAI` (`new OpenAIClient(key).GetChatClient(model).AsIChatClient()`)
-  or `OllamaSharp` (`new OllamaApiClient(uri, model)`). Tools need `Microsoft.Extensions.AI` for `UseFunctionInvocation()`.
+  comes from another package. Tools need `Microsoft.Extensions.AI` for `UseFunctionInvocation()`.
+  - OpenAI, `Microsoft.Extensions.AI.OpenAI`: `new OpenAIClient(key).GetChatClient(model).AsIChatClient()`. Any
+    OpenAI-compatible API (Azure OpenAI, OpenRouter, Groq, DeepSeek, LM Studio) uses the same client with
+    `new OpenAIClientOptions { Endpoint = uri }` and `new ApiKeyCredential(key)`.
+  - Claude, `Anthropic`: `new AnthropicClient { ApiKey = key }.AsIChatClient(model)`.
+  - Gemini, `Google.GenAI`: `new Client(apiKey: key).AsIChatClient(model)`.
+  - Ollama, `OllamaSharp`: `new OllamaApiClient(uri, model)`.
+  - Apple Intelligence on the device, `Microsoft.Maui.Essentials.AI` (preview): `new AppleIntelligenceChatClient()`, iOS
+    and Mac Catalyst 26+ only; check `OperatingSystem.IsIOSVersionAtLeast(26)` and fall back to another client.
 
 ## Minimal chat
 

@@ -5,8 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/MykhailoDav/Plugin.Maui.AiChat/blob/main/LICENSE)
 
 An AI chat for .NET MAUI in one view. Give it any `IChatClient` from
-[Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai) (OpenAI, Azure OpenAI, Ollama
-and many more) and it streams the answers as Markdown that does not flicker, shows tool calls and asks the user before
+[Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai) (OpenAI, Claude, Gemini,
+Azure OpenAI, Ollama, Apple Intelligence and many more) and it streams the answers as Markdown that does not flicker, shows tool calls and asks the user before
 the ones that need approval, and keeps a history you can save. It runs on Android, iOS, Mac Catalyst and Windows, in pure
 managed code, with no setup call and no framework to adopt.
 
@@ -94,13 +94,31 @@ That is the whole chat: messages, streaming, Stop, Retry, Copy, and the message 
 > type in, which is fine for trying things; for an app you ship, call the model through your own server, or use a
 > provider that gives each user a short-lived token.
 
-### A local model
+### Other models
 
-[OllamaSharp](https://github.com/awaescher/OllamaSharp)'s client is an `IChatClient` too:
+Each of these packages gives you an `IChatClient`; pass it to `AiChatSession` the same way.
+
+| Model | Package | Client |
+| --- | --- | --- |
+| Claude | [Anthropic](https://www.nuget.org/packages/Anthropic) | `new AnthropicClient { ApiKey = apiKey }.AsIChatClient("claude-sonnet-5-5")` |
+| Gemini | [Google.GenAI](https://www.nuget.org/packages/Google.GenAI) | `new Client(apiKey: apiKey).AsIChatClient("gemini-3.6-flash")` |
+| Ollama, on your machine | [OllamaSharp](https://www.nuget.org/packages/OllamaSharp) | `new OllamaApiClient(new Uri("http://localhost:11434"), "llama3.2")` |
+| Apple Intelligence, on the device | [Microsoft.Maui.Essentials.AI](https://www.nuget.org/packages/Microsoft.Maui.Essentials.AI) (preview) | `new AppleIntelligenceChatClient()` on iOS and Mac Catalyst 26 and later |
+| Azure OpenAI, OpenRouter, Groq, DeepSeek, LM Studio and other OpenAI-compatible APIs | [Microsoft.Extensions.AI.OpenAI](https://www.nuget.org/packages/Microsoft.Extensions.AI.OpenAI) | `OpenAIClient` with the service's endpoint, below |
 
 ```csharp
-IChatClient client = new OllamaApiClient(new Uri("http://localhost:11434"), "llama3.2");
+IChatClient client = new OpenAIClient(
+        new ApiKeyCredential(apiKey),
+        new OpenAIClientOptions { Endpoint = new Uri("https://openrouter.ai/api/v1") })
+    .GetChatClient("openai/gpt-5-mini")
+    .AsIChatClient();
 ```
+
+Apple Intelligence runs on the device with no key, but only where the device supports it: check
+`OperatingSystem.IsIOSVersionAtLeast(26)` (or `IsMacCatalystVersionAtLeast(26)`) first and fall back to another model.
+
+Tool calls need a model that supports them. *Thinking* shows only for clients that send the model's reasoning as
+`TextReasoningContent`; with the others the answer shows as usual.
 
 From the Android emulator, the development machine is `http://10.0.2.2:11434`. Plain HTTP needs
 `android:usesCleartextTraffic="true"` on Android and `NSAllowsLocalNetworking` on iOS; the sample app shows both.

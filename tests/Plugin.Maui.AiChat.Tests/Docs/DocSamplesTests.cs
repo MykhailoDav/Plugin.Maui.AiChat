@@ -1,4 +1,7 @@
+using System.ClientModel;
 using System.Text.Json;
+using Anthropic;
+using Google.GenAI;
 using Microsoft.Extensions.AI;
 using OllamaSharp;
 using OpenAI;
@@ -46,12 +49,21 @@ public class DocSamplesTests
     }
 
     [Fact]
-    public void A_local_model()
+    public void Other_models()
     {
-        // README: A local model.
-        IChatClient client = new OllamaApiClient(new Uri("http://localhost:11434"), "llama3.2");
+        const string apiKey = "test-key";
 
-        Assert.NotNull(new AiChatSession(client));
+        // README: Other models. The Apple Intelligence client is iOS-only, so it is not compiled here.
+        IChatClient claude = new AnthropicClient { ApiKey = apiKey }.AsIChatClient("claude-sonnet-5-5");
+        IChatClient gemini = new Client(apiKey: apiKey).AsIChatClient("gemini-3.6-flash");
+        IChatClient ollama = new OllamaApiClient(new Uri("http://localhost:11434"), "llama3.2");
+        IChatClient compatible = new OpenAIClient(
+                new ApiKeyCredential(apiKey),
+                new OpenAIClientOptions { Endpoint = new Uri("https://openrouter.ai/api/v1") })
+            .GetChatClient("openai/gpt-5-mini")
+            .AsIChatClient();
+
+        Assert.All([claude, gemini, ollama, compatible], client => Assert.NotNull(new AiChatSession(client)));
     }
 
     [Fact]

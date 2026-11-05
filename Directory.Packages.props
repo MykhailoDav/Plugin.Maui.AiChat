@@ -22,6 +22,8 @@
     <PackageVersion Include="coverlet.MTP" Version="10.1.0" />
     <!-- The clients the doc samples use, so the samples keep compiling. -->
     <PackageVersion Include="OllamaSharp" Version="5.5.0" />
+    <PackageVersion Include="Anthropic" Version="13.5.0" />
+    <PackageVersion Include="Google.GenAI" Version="1.28.0" />
   </ItemGroup>
 
   <ItemGroup Label="Engineering">
