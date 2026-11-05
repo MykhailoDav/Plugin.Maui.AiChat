@@ -10,7 +10,7 @@ and many more) and it streams the answers as Markdown that does not flicker, sho
 the ones that need approval, and keeps a history you can save. It runs on Android, iOS, Mac Catalyst and Windows, in pure
 managed code, with no setup call and no framework to adopt.
 
-![The sample app: a streamed Markdown answer on iOS, a tool call waiting for approval, and the same conversation on Android in the dark theme](https://raw.githubusercontent.com/MykhailoDav/Plugin.Maui.AiChat/main/docs/images/screenshots.png)
+![The sample app on iOS: a streamed Markdown answer with a list, code and a table; a tool call waiting for approval above the keyboard; and the conversation restored after a restart, in the dark theme](https://raw.githubusercontent.com/MykhailoDav/Plugin.Maui.AiChat/main/docs/images/screenshots.png)
 
 > **Before 1.0.** The API can still change between minor versions until 1.0.
 
