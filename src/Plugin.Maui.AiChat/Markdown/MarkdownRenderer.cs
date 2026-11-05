@@ -166,7 +166,9 @@ internal sealed partial class MarkdownRenderer(MarkdownStyle style)
         return grid;
     }
 
-    private ScrollView TableView(Table table)
+    // The columns share the width and their cells wrap; a horizontal scroll view in a list row would take the list's
+    // vertical drags on Android.
+    private Border TableView(Table table)
     {
         // A pipe table's cells carry no column index (it is -1); their position in the row is the column.
         var grid = new Grid();
@@ -176,7 +178,7 @@ internal sealed partial class MarkdownRenderer(MarkdownStyle style)
             grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
             while (grid.ColumnDefinitions.Count < row.Count)
             {
-                grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+                grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
             }
         }
 
@@ -194,11 +196,10 @@ internal sealed partial class MarkdownRenderer(MarkdownStyle style)
             StrokeThickness = 1,
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
             Padding = 0,
-            HorizontalOptions = LayoutOptions.Start,
             Content = grid,
         };
         ChatTheme.ApplyBrush(frame, Border.StrokeProperty, ChatTheme.Line);
-        return new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = frame };
+        return frame;
     }
 
     private static TextAlignment AlignmentOf(Table table, int column)
@@ -217,7 +218,7 @@ internal sealed partial class MarkdownRenderer(MarkdownStyle style)
         var content = Paragraph(cell.Count == 0 ? null : ((ParagraphBlock)cell[0]).Inline, 0, header);
         content.HorizontalTextAlignment = alignment;
 
-        var view = new ContentView { Padding = new Thickness(10, 6), MaximumWidthRequest = 320, Content = content };
+        var view = new ContentView { Padding = new Thickness(10, 6), Content = content };
         if (header)
         {
             ChatTheme.Apply(view, VisualElement.BackgroundColorProperty, ChatTheme.Surface);

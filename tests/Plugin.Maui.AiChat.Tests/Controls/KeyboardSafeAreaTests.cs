@@ -39,4 +39,14 @@ public class KeyboardSafeAreaTests
 
         Assert.Equal(SafeAreaRegions.Container, chat.SafeAreaEdges.Bottom);
     }
+
+    [Theory]
+    [InlineData(SafeAreaRegions.SoftInput, true)]
+    [InlineData(SafeAreaRegions.SoftInput | SafeAreaRegions.Container, true)]
+    [InlineData(SafeAreaRegions.All, true)]
+    [InlineData(SafeAreaRegions.Container, false)]
+    [InlineData(SafeAreaRegions.None, false)]
+    [InlineData(SafeAreaRegions.Default, false)]
+    public void Knows_which_regions_avoid_the_keyboard(SafeAreaRegions regions, bool avoids)
+        => Assert.Equal(avoids, KeyboardSafeArea.AvoidsKeyboard(regions));
 }

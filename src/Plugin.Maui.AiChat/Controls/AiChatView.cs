@@ -13,7 +13,7 @@ namespace Plugin.Maui.AiChat;
 /// <chat:AiChatView Session="{Binding Chat}" />
 /// ]]></code>
 /// </example>
-public class AiChatView : ContentView
+public partial class AiChatView : ContentView
 {
     /// <summary>Identifies the <see cref="Session"/> bindable property.</summary>
     public static readonly BindableProperty SessionProperty = BindableProperty.Create(
@@ -63,7 +63,11 @@ public class AiChatView : ContentView
         Loaded += OnLoaded;
 
         SetBinding(IsSessionBusyProperty, Binding.Create(static (AiChatView view) => view.Session?.IsBusy, source: this));
-        ScrollToItem = index => List.ScrollTo(index, position: ScrollToPosition.End, animate: false);
+        ScrollToItem = index =>
+        {
+            List.ScrollTo(index, position: ScrollToPosition.End, animate: false);
+            ScrollPastEnd();
+        };
     }
 
     /// <summary>
@@ -135,6 +139,9 @@ public class AiChatView : ContentView
         return row;
     }
 
+    /// <summary>Finishes a scroll to the end where the platform stops short of it.</summary>
+    partial void ScrollPastEnd();
+
     internal Task SendAsync(string text)
     {
         _follow.Follow();
@@ -172,7 +179,7 @@ public class AiChatView : ContentView
         }
     }
 
-    // Many tokens arrive between frames; one pending scroll covers them all.
+    // Many tokens arrive between frames; one pending scroll covers them all, and at most every render of the answer.
     private void ScheduleScrollToEnd()
     {
         if (_scrollScheduled)
@@ -181,7 +188,7 @@ public class AiChatView : ContentView
         }
 
         _scrollScheduled = true;
-        Dispatcher.Dispatch(ScrollToEnd);
+        Dispatcher.DispatchDelayed(MarkdownView.StreamingRenderInterval, ScrollToEnd);
     }
 
     private void ScrollToEnd()

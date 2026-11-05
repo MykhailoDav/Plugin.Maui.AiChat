@@ -1,0 +1,161 @@
+# Plugin.Maui.AiChat: complete reference
+
+This file is for AI coding assistants. It describes the whole public API of Plugin.Maui.AiChat 0.1, its behavior, and
+the mistakes to avoid. Everything not listed here does not exist.
+
+## Setup
+
+- Package: `dotnet add package Plugin.Maui.AiChat`. Needs .NET 10 and .NET MAUI 10 (`net10.0-android`, `-ios`,
+  `-maccatalyst`, `-windows10.0.19041.0`). Minimum Android 5.0, iOS 15, Mac Catalyst 15, Windows 10 1809.
+- No registration: there is no `UseAiChat()`; the views are made of standard MAUI controls.
+- Namespace: `Plugin.Maui.AiChat` (C#), `xmlns:chat="clr-namespace:Plugin.Maui.AiChat;assembly=Plugin.Maui.AiChat"`
+  (XAML).
+- Dependencies: Microsoft.Maui.Controls ≥ 10.0.0, Microsoft.Extensions.AI.Abstractions ≥ 10.11.0, Markdig. A chat client
+  comes from another package, for example `Microsoft.Extensions.AI.OpenAI` (`new OpenAIClient(key).GetChatClient(model).AsIChatClient()`)
+  or `OllamaSharp` (`new OllamaApiClient(uri, model)`). Tools need `Microsoft.Extensions.AI` for `UseFunctionInvocation()`.
+
+## Minimal chat
+
+```csharp
+using Microsoft.Extensions.AI;
+using Plugin.Maui.AiChat;
+
+public sealed class ChatViewModel(IChatClient client)
+{
+    public AiChatSession Chat { get; } = new(client)
+    {
+        Options = new ChatOptions { Instructions = "You are a helpful assistant." },
+    };
+}
+```
+
+```xml
+<chat:AiChatView Session="{Binding Chat}" />
+```
+
+## AiChatSession (sealed, INotifyPropertyChanged)
+
+The conversation, without UI. Create it on the UI thread and keep it in the view model (singleton or long-lived), so it
+outlives the page.
+
+| Member | Behavior |
+| --- | --- |
+| `AiChatSession(IChatClient chatClient)` | Throws `ArgumentNullException` for null. Captures the current thread's dispatcher. |
+| `IChatClient ChatClient { get; }` | The client. To change the model or provider, create a new session and `Load` the old `Messages` into it. |
+| `ChatOptions? Options { get; set; }` | Sent with every request. `Instructions` is the system prompt; `Tools` the tools; `ModelId`, `Temperature` and so on. Default `null`. |
+| `IReadOnlyList<ChatMessage> Messages { get; }` | The history, oldest first: user messages, answers, tool calls, results and approvals. Read-only; change it only with `Load` and `Clear`. |
+| `bool IsBusy { get; }` | True while an answer streams. Raises `PropertyChanged`. |
+| `Task SendAsync(string text, CancellationToken cancellationToken = default)` | Adds the user message, streams the answer, returns when it ends. Throws `ArgumentException` for null, empty or white-space text and `InvalidOperationException` while `IsBusy` (synchronously). Does NOT throw when the client fails: the chat shows the error with Retry and `ResponseCompleted` reports it. The token stops the answer like `Stop()`, without throwing. Called off the UI thread, it continues on the UI thread. Rejects approval requests that are still waiting. |
+| `void Stop()` | Stops the answer in progress; what arrived stays in `Messages`. No-op when idle. |
+| `void Clear()` | Stops the answer and empties the conversation (and forgets a `ConversationId`). `ResponseCompleted` is not raised for the cut-off answer. |
+| `void Load(IEnumerable<ChatMessage> messages)` | Replaces the conversation. Throws `ArgumentNullException` for null and `ArgumentException` when an item is null. Accepts `session.Messages` itself. Waiting approval requests in the loaded messages can be answered. |
+| `event EventHandler<AiChatResponseEventArgs>? ResponseCompleted` | After every answer, once `Messages` holds it: the place to save. |
+| `event PropertyChangedEventHandler? PropertyChanged` | For `IsBusy`. |
+
+`AiChatResponseEventArgs` (sealed, EventArgs): `ChatResponse Response` (combined from the updates that arrived; `Usage`
+when the client reported it), `AiChatResponseStatus Status`, `Exception? Exception` (set when `Failed`).
+
+`AiChatResponseStatus`: `Completed`, `Stopped`, `Failed`.
+
+Behavior rules:
+- After `Stopped` or `Failed`, tool calls without a result and approval requests are dropped from `Messages`, so the next
+  request is valid; the text that arrived stays.
+- Retry (the button on a failed answer) removes what the failed answer added and runs the same request again. There is
+  no public `Retry` method.
+- When a response carries `ConversationId` (a stateful service such as the OpenAI Responses API), later requests send
+  only the messages after it, with the id in a copy of `Options`; `Options` itself is not changed.
+- There is no `SendAsync(ChatMessage)`, no attachments, no regenerate, no edit of a sent message, and no streaming
+  callback per token. Read the answer from `ResponseCompleted.Response` or `Messages`.
+
+## Tools and approval
+
+```csharp
+IChatClient client = innerClient.AsBuilder().UseFunctionInvocation().Build();
+var chat = new AiChatSession(client)
+{
+    Options = new ChatOptions
+    {
+        Tools =
+        [
+            AIFunctionFactory.Create(() => DateTimeOffset.Now, "get_time", "Gets the local time."),
+            new ApprovalRequiredAIFunction(AIFunctionFactory.Create((string path) => File.Exists(path), "file_exists", "Checks a file.")),
+        ],
+    },
+};
+```
+
+- Without `UseFunctionInvocation()` no tool runs: the model's calls only show as cards and end up Canceled.
+- Each call is a card: name (function name, MCP tool name, or the hosted tool's kind such as `WebSearch`), arguments
+  (`name: value`, JSON as sent), and a status: Needs your approval, Running…, Done, Failed (the function threw),
+  Rejected, Canceled (the answer ended before the call finished).
+- An `ApprovalRequiredAIFunction` call shows Approve and Reject. The answer continues when every request of that response
+  has an answer. Reject sends a rejection; the function does not run. Sending a new message rejects waiting requests.
+  If one call of a response needs approval, `FunctionInvokingChatClient` asks for all calls of that response.
+- There is no API to approve from code, no auto-approve list, and no callback before a tool runs; use
+  `FunctionInvokingChatClient` features for that.
+
+## Saving and restoring
+
+```csharp
+var typeInfo = AIJsonUtilities.DefaultOptions.GetTypeInfo(typeof(IList<ChatMessage>));
+chat.ResponseCompleted += (_, _) => File.WriteAllText(path, JsonSerializer.Serialize(chat.Messages.ToList(), typeInfo));
+chat.Load((IList<ChatMessage>)JsonSerializer.Deserialize(File.ReadAllText(path), typeInfo)!);
+```
+
+Use the `IList<ChatMessage>` type info: `List<ChatMessage>` has none in `AIJsonUtilities.DefaultOptions` without
+reflection (trimmed or AOT apps).
+
+## AiChatView (ContentView)
+
+| Bindable property | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `Session` | `AiChatSession?` | `null` | Without a session the message field's button is disabled. |
+| `Placeholder` | `string` | `"Message"` | Hint of the message field. |
+| `AccentColor` | `Color` | `#512BD4` | User bubbles, Send/Stop, Approve. White text goes on it. |
+| `EmptyView` | `View?` | `null` | Shown while the conversation is empty. Give it its own `BindingContext` (for example `{Binding Source={x:Reference Chat}, Path=BindingContext}`) for commands. |
+
+- Rows: user message (bubble), answer (Markdown with Copy once complete), reasoning (tap to open), tool card, error (with
+  Retry for the latest failure).
+- The message field is an `Editor` that grows to 140; the button sends, or stops while busy. Enter does not send.
+- The view follows the end of a streaming answer and stops when the user scrolls up; scrolling back down or sending
+  follows again.
+- Keyboard: on load it adds `SafeAreaRegions.SoftInput` to the bottom safe area of its `ContentPage`, unless the app set
+  the page's `SafeAreaEdges`; on Android it also makes the window resize instead of pan while it is loaded.
+- Light and dark themes follow the app theme. Text colors, surfaces and fonts are not configurable beyond `AccentColor`
+  in 0.1. The app's implicit `Button` and `Editor` styles reach the parts.
+- Automation ids: `AiChatList`, `AiChatMessageField`, `AiChatSendButton`, `AiChatUserMessage`, `AiChatAnswer`,
+  `AiChatCopyAnswer`, `AiChatCopyCode`, `AiChatReasoning`, `AiChatToolStatus`, `AiChatApprove`, `AiChatReject`,
+  `AiChatError`, `AiChatRetry`.
+- Not available in 0.1: custom row templates, localization of the view's texts, avatars, timestamps, suggestions chips
+  (use `EmptyView`), attachments, voice, Enter to send.
+
+## MarkdownView (ContentView)
+
+| Bindable property | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `Text` | `string?` | `null` | The Markdown. |
+| `IsStreaming` | `bool` | `false` | True while `Text` grows: unfinished `**`, `*`, `_`, `__`, `~~`, backticks and `[text](url` render as closed; renders are paced at most every 80 ms. Set it to false when the text is complete. |
+| `TextColor` | `Color?` | `null` | `null` follows the theme. |
+| `LinkColor` | `Color?` | `null` | `null`: violet, lighter in dark theme. |
+| `FontSize` | `double` | `16` | Positive and finite; other values are ignored. Headings 1.5/1.3/1.15×, code 0.875×. |
+
+- Supports: paragraphs, headings 1–6, bold, italic, strikethrough, inline code, links and autolinks, fenced and indented
+  code (language label and Copy; long lines wrap), bullet, ordered and task lists (nested), quotes, pipe tables (columns
+  share the width, alignment honored), thematic breaks.
+- A single newline is a line break (as in chat apps).
+- Links open in the system browser only for `http`, `https` and `mailto`. Images are not loaded (alt text shows). HTML
+  shows as text. No math, no syntax highlighting, no footnotes, no text selection.
+- Renders on the dispatcher, not synchronously: after setting `Text`, the views appear on the next dispatch.
+
+## Mistakes to avoid
+
+- Creating the session in the page's code-behind on every appearance: the conversation is lost on navigation. Keep it
+  in a long-lived view model.
+- Wrapping `SendAsync` in try/catch for client errors: they never surface there; use `ResponseCompleted`.
+- Calling `SendAsync` while `IsBusy`: it throws. Check `IsBusy` or call `Stop()` first.
+- Expecting tools to run without `UseFunctionInvocation()`.
+- Serializing `Messages` with `JsonSerializer.Serialize(chat.Messages)` without `AIJsonUtilities.DefaultOptions`: content
+  types lose their `$type` and do not round-trip.
+- Shipping an API key in the app. Call the model through your own server for production.
+- Inventing APIs: there is no `UseAiChat()`, `AiChatView.Messages`, `AiChatView.SendCommand`, `ItemTemplate`,
+  `UserBubbleColor`, `Retry()`, `Regenerate()`, `OnToken` or `LinkTapped`.

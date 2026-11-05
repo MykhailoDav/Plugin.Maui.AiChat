@@ -10,6 +10,7 @@ namespace Plugin.Maui.AiChat.UITests.Infrastructure;
 /// <item><c>UITEST_CONFIGURATION</c>: the configuration the host app was built with (<c>Debug</c> by default).</item>
 /// <item><c>UITEST_APP</c>: the app to test, instead of the host app's build output.</item>
 /// <item><c>UITEST_DEVICE</c>: the iOS simulator (<c>iPhone 17</c> by default) or the Android emulator (AVD) to use.</item>
+/// <item><c>UITEST_UDID</c>: the device to use by its id, such as an emulator's serial (<c>emulator-5554</c>).</item>
 /// <item><c>UITEST_PLATFORM_VERSION</c>: the iOS or Android version of that device.</item>
 /// <item><c>UITEST_APPIUM_URL</c>: an Appium server that is already running; otherwise one is started from this folder.</item>
 /// <item><c>UITEST_UPDATE_BASELINES</c>: <c>1</c> to save the screenshots as the new baselines instead of comparing them.</item>
@@ -27,6 +28,8 @@ public static class UITestSettings
         Environment.GetEnvironmentVariable("UITEST_CONFIGURATION") is { Length: > 0 } configuration ? configuration : "Debug";
 
     public static string? Device { get; } = Environment.GetEnvironmentVariable("UITEST_DEVICE") is { Length: > 0 } device ? device : null;
+
+    public static string? Udid { get; } = Environment.GetEnvironmentVariable("UITEST_UDID") is { Length: > 0 } udid ? udid : null;
 
     public static string? PlatformVersion { get; } =
         Environment.GetEnvironmentVariable("UITEST_PLATFORM_VERSION") is { Length: > 0 } version ? version : null;

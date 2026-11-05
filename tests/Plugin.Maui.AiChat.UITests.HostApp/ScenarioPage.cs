@@ -4,7 +4,8 @@ namespace Plugin.Maui.AiChat.UITests.HostApp;
 
 /// <summary>
 /// The page of a scenario: a <c>BackButton</c>, the session's state as texts the UI tests read (<c>IsBusy</c>,
-/// <c>Messages</c>, <c>LastStatus</c>, <c>Requests</c>), and the chat (<c>Chat</c>) filling the rest.
+/// <c>Messages</c>, <c>LastStatus</c>, <c>Requests</c>, and <c>Seconds</c>, how long the last response took), and the chat
+/// (<c>Chat</c>) filling the rest.
 /// </summary>
 public sealed class ScenarioPage : ContentPage
 {
@@ -14,6 +15,8 @@ public sealed class ScenarioPage : ContentPage
     private readonly Label _messages = Status("Messages");
     private readonly Label _lastStatus = Status("LastStatus");
     private readonly Label _requestCount = Status("Requests");
+    private readonly Label _seconds = Status("Seconds");
+    private readonly System.Diagnostics.Stopwatch _response = new();
 
     /// <param name="name">The scenario's name, shown as the title.</param>
     /// <param name="session">The conversation the chat shows.</param>
@@ -28,10 +31,16 @@ public sealed class ScenarioPage : ContentPage
         this.SetAppThemeColor(BackgroundColorProperty, Colors.White, Color.FromArgb("#121212"));
         _lastStatus.Text = "None";
 
-        session.PropertyChanged += (_, _) => UpdateStatus();
+        session.PropertyChanged += (_, _) =>
+        {
+            if (session.IsBusy)
+                _response.Restart();
+            UpdateStatus();
+        };
         session.ResponseCompleted += (_, e) =>
         {
             _lastStatus.Text = e.Status.ToString();
+            _seconds.Text = _response.Elapsed.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture);
             UpdateStatus();
         };
 
@@ -46,7 +55,7 @@ public sealed class ScenarioPage : ContentPage
         var title = new Label { Text = name, AutomationId = "ScenarioTitle", FontSize = 18, VerticalOptions = LayoutOptions.Center };
         title.SetAppThemeColor(Label.TextColorProperty, Colors.Black, Colors.White);
         var header = new HorizontalStackLayout { Spacing = 12, Padding = new Thickness(8, 4), Children = { back, title } };
-        var status = new HorizontalStackLayout { Spacing = 12, Padding = new Thickness(8, 0), Children = { _isBusy, _messages, _lastStatus, _requestCount } };
+        var status = new HorizontalStackLayout { Spacing = 12, Padding = new Thickness(8, 0), Children = { _isBusy, _messages, _lastStatus, _requestCount, _seconds } };
 
         var chat = new AiChatView { AutomationId = "Chat", Session = session };
         var layout = new Grid { RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Star)] };

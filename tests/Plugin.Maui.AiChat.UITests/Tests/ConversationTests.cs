@@ -7,7 +7,8 @@ namespace Plugin.Maui.AiChat.UITests.Tests;
 /// <summary>Sending, streaming, stopping and following the end of the answer, with a scripted client.</summary>
 public class ConversationTests : UITest
 {
-    private static readonly TimeSpan LongAnswer = TimeSpan.FromSeconds(30);
+    // The answer streams for about 7 seconds; a loaded emulator takes several times longer.
+    private static readonly TimeSpan LongAnswer = TimeSpan.FromSeconds(60);
 
     [Test]
     public void Send_ShowsTheMessageAndStreamsTheAnswer()
@@ -46,6 +47,7 @@ public class ConversationTests : UITest
 
         var copy = App.Element("AiChatCopyAnswer");
         Assert.That(App.IsWithin(copy, "AiChatList"), Is.True, "The end of the answer is in view.");
+        TestContext.Out.WriteLine($"The answer took {App.Text("Seconds")} s.");
     }
 
     [Test]
@@ -54,12 +56,12 @@ public class ConversationTests : UITest
         App.OpenScenario("Streaming");
 
         App.Send("Tell me everything");
-        Thread.Sleep(TimeSpan.FromSeconds(3));
+        Assert.That(App.WaitUntil(() => !App.IsInList("AiChatUserMessage"), LongAnswer), Is.True,
+            "The answer grows past the screen and the list follows it, so the question leaves the top.");
         App.Drag("AiChatList", new PointF(0.5f, 0.2f), new PointF(0.5f, 0.9f), TimeSpan.FromMilliseconds(300));
         Assert.That(App.WaitForText("LastStatus", "Completed", LongAnswer), Is.EqualTo("Completed"));
 
-        var question = App.Element("AiChatUserMessage");
-        Assert.That(App.IsWithin(question, "AiChatList"), Is.True, "The list stays where the user scrolled to.");
+        Assert.That(App.IsInList("AiChatUserMessage"), Is.True, "The list stays where the user scrolled to.");
     }
 
     [Test]

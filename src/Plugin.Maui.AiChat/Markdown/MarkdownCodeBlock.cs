@@ -4,11 +4,13 @@ using Plugin.Maui.AiChat.Theming;
 
 namespace Plugin.Maui.AiChat.Markdown;
 
-/// <summary>A code block: its language, a Copy button, and the code unwrapped in a horizontal scroll view.</summary>
+/// <summary>
+/// A code block: its language, a Copy button and the code. Long lines wrap: a horizontal scroll view inside a list row
+/// takes the vertical drags meant for the list on Android, and keeps its first height while the code grows.
+/// </summary>
 internal sealed class MarkdownCodeBlock : Border
 {
     private readonly Label _code;
-    private readonly ScrollView _scroll;
 
     internal MarkdownCodeBlock(MarkdownStyle style, string code, string? language)
     {
@@ -39,7 +41,7 @@ internal sealed class MarkdownCodeBlock : Border
             Text = code,
             FontFamily = MonospaceFont.Name,
             FontSize = Math.Round(style.FontSize * 0.875),
-            LineBreakMode = LineBreakMode.NoWrap,
+            LineBreakMode = LineBreakMode.CharacterWrap,
             Padding = new Thickness(12, 0, 12, 12),
         };
         if (style.TextColor is { } color)
@@ -51,8 +53,7 @@ internal sealed class MarkdownCodeBlock : Border
             ChatTheme.Apply(_code, Label.TextColorProperty, ChatTheme.Text);
         }
 
-        _scroll = new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = _code };
-        Content = new VerticalStackLayout { header, _scroll };
+        Content = new VerticalStackLayout { header, _code };
     }
 
     internal string? Language { get; }
@@ -60,13 +61,7 @@ internal sealed class MarkdownCodeBlock : Border
     internal string Code
     {
         get => _code.Text;
-        set
-        {
-            _code.Text = value;
-            // A horizontal scroll view keeps the height it measured first, so a block that grows while it streams
-            // would show only its first lines.
-            ((IView)_scroll).InvalidateMeasure();
-        }
+        set => _code.Text = value;
     }
 
     internal CopyButton CopyButton { get; }

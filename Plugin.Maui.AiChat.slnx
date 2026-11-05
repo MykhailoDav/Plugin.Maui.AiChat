@@ -7,5 +7,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Plugin.Maui.AiChat.Tests/Plugin.Maui.AiChat.Tests.csproj" />
+    <Project Path="tests/Plugin.Maui.AiChat.UITests.HostApp/Plugin.Maui.AiChat.UITests.HostApp.csproj" />
+    <Project Path="tests/Plugin.Maui.AiChat.UITests/Plugin.Maui.AiChat.UITests.csproj" />
   </Folder>
 </Solution>

@@ -34,6 +34,8 @@ public sealed class AiChatApp : IDisposable
         var options = new AppiumOptions { App = UITestSettings.AppPath };
         if (UITestSettings.PlatformVersion is { } platformVersion)
             options.PlatformVersion = platformVersion;
+        if (UITestSettings.Udid is { } udid)
+            options.AddAdditionalAppiumOption("udid", udid);
 
         options.AddAdditionalAppiumOption("newCommandTimeout", 600);
 
@@ -67,6 +69,9 @@ public sealed class AiChatApp : IDisposable
                 }
 
                 options.AddAdditionalAppiumOption("disableWindowAnimation", true);
+
+                // UiAutomator2 waits for the app to be idle before each command, and a streaming answer never is.
+                options.AddAdditionalAppiumOption("settings[waitForIdleTimeout]", 0);
 
                 // Every build has the same version code, so the app is installed again rather than kept.
                 options.AddAdditionalAppiumOption("enforceAppInstall", true);
@@ -166,7 +171,18 @@ public sealed class AiChatApp : IDisposable
         return text;
     }
 
-    public void Tap(string automationId) => Element(automationId).Click();
+    public void Tap(string automationId)
+    {
+        try
+        {
+            Element(automationId).Click();
+        }
+        catch (StaleElementReferenceException)
+        {
+            // A streaming chat can rebuild the element between finding and tapping it.
+            Element(automationId).Click();
+        }
+    }
 
     /// <summary>Taps the element that shows <paramref name="text"/>, such as a tab, which has no automation id.</summary>
     public void TapText(string text)
@@ -247,11 +263,67 @@ public sealed class AiChatApp : IDisposable
         var field = Element("AiChatMessageField");
         field.Click();
         field.SendKeys(text);
-        Tap("AiChatSendButton");
+
+        // The keyboard is still coming up and the layout moves the button; a tap at its old place hits nothing.
+        var previous = Point.Empty;
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var location = Element("AiChatSendButton").Location;
+            if (location == previous)
+                break;
+
+            previous = location;
+            Thread.Sleep(200);
+        }
+
+        // A slow emulator can drop a tap; the field empties once the message is sent.
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            Tap("AiChatSendButton");
+            try
+            {
+                Wait(TimeSpan.FromSeconds(5)).Until(_ => Element("AiChatMessageField").Text != text);
+                return;
+            }
+            catch (WebDriverTimeoutException)
+            {
+            }
+        }
+
+        throw new InvalidOperationException($"The message '{text}' was not sent.");
     }
 
     /// <summary>The elements with <paramref name="automationId"/> that exist now, such as one per message.</summary>
     public IReadOnlyList<IWebElement> Elements(string automationId) => _driver.FindElements(ByAutomationId(automationId));
+
+    /// <summary>Waits until <paramref name="condition"/> holds; false when it does not within <paramref name="timeout"/>.</summary>
+    public bool WaitUntil(Func<bool> condition, TimeSpan timeout)
+    {
+        try
+        {
+            return Wait(timeout).Until(_ => condition());
+        }
+        catch (WebDriverTimeoutException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Whether some element with <paramref name="automationId"/> is inside the list (rows off screen may not exist).</summary>
+    public bool IsInList(string automationId)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                return Elements(automationId).Any(element => IsWithin(element, "AiChatList"));
+            }
+            catch (StaleElementReferenceException) when (attempt < 3)
+            {
+                // A streaming chat rebuilds its rows; look again.
+            }
+        }
+    }
 
     /// <summary>Whether the element lies inside the bounds of the element with <paramref name="containerId"/>.</summary>
     public bool IsWithin(IWebElement element, string containerId)

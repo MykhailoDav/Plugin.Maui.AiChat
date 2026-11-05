@@ -276,10 +276,7 @@ public sealed class AiChatSession : INotifyPropertyChanged
     {
         var start = _history.Count;
         _history.AddMessages(updates);
-        if (status != AiChatResponseStatus.Completed)
-        {
-            RemoveUnansweredToolCalls(start);
-        }
+        RemoveUnansweredToolCalls(start, keepApprovalRequests: status == AiChatResponseStatus.Completed);
 
         for (var i = updates.Count - 1; i >= 0; i--)
         {
@@ -292,9 +289,10 @@ public sealed class AiChatSession : INotifyPropertyChanged
         }
     }
 
-    // A tool call without its result makes the next request invalid for most providers, so a response that was cut
-    // off keeps its text and the calls that finished.
-    private void RemoveUnansweredToolCalls(int start)
+    // A tool call without its result makes the next request invalid for most providers: the calls of a response that was
+    // cut off, and the calls nothing ran (a client without function invocation). Approval requests of a completed
+    // response stay, to be answered.
+    private void RemoveUnansweredToolCalls(int start, bool keepApprovalRequests)
     {
         var answered = new HashSet<string>(StringComparer.Ordinal);
         for (var i = start; i < _history.Count; i++)
@@ -313,7 +311,8 @@ public sealed class AiChatSession : INotifyPropertyChanged
             var contents = _history[i].Contents;
             for (var j = contents.Count - 1; j >= 0; j--)
             {
-                if (contents[j] is ToolApprovalRequestContent || (contents[j] is ToolCallContent call && !answered.Contains(call.CallId)))
+                if ((contents[j] is ToolApprovalRequestContent && !keepApprovalRequests)
+                    || (contents[j] is ToolCallContent call && !answered.Contains(call.CallId)))
                 {
                     contents.RemoveAt(j);
                 }

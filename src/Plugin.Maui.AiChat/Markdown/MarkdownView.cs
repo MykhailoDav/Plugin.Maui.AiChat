@@ -35,6 +35,10 @@ public class MarkdownView : ContentView
         nameof(FontSize), typeof(double), typeof(MarkdownView), 16d, propertyChanged: OnStyleChanged,
         validateValue: static (_, value) => value is double size && double.IsFinite(size) && size > 0);
 
+    // While text streams, renders wait this long so the tokens in between share one: a render and the layout pass it
+    // starts cost more than a token's worth of time on slower Android devices.
+    internal static readonly TimeSpan StreamingRenderInterval = TimeSpan.FromMilliseconds(80);
+
     private readonly VerticalStackLayout _blocks = new() { Spacing = MarkdownRenderer.BlockSpacing };
     private readonly List<(string Source, View View)> _rendered = [];
     private MarkdownRenderer? _renderer;
@@ -113,7 +117,14 @@ public class MarkdownView : ContentView
         }
 
         _renderScheduled = true;
-        Dispatcher.Dispatch(Render);
+        if (IsStreaming)
+        {
+            Dispatcher.DispatchDelayed(StreamingRenderInterval, Render);
+        }
+        else
+        {
+            Dispatcher.Dispatch(Render);
+        }
     }
 
     private void Render()

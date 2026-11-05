@@ -4,7 +4,7 @@ using Plugin.Maui.AiChat.Theming;
 namespace Plugin.Maui.AiChat.Controls;
 
 /// <summary>The message field and one button: Send while idle, Stop while a response streams.</summary>
-internal sealed class ChatInputBar : ContentView
+internal sealed partial class ChatInputBar : ContentView
 {
     internal const string SendGlyph = "↑";
     internal const string StopGlyph = "■";
@@ -28,6 +28,7 @@ internal sealed class ChatInputBar : ContentView
         ChatTheme.Apply(Editor, Editor.PlaceholderColorProperty, ChatTheme.Muted);
         Editor.SetBinding(Editor.PlaceholderProperty, static (AiChatView view) => view.Placeholder, source: owner);
         Editor.TextChanged += (_, _) => Refresh();
+        StylePlatformEditor();
 
         Button = new Button
         {
@@ -66,6 +67,9 @@ internal sealed class ChatInputBar : ContentView
     }
 
     internal Editor Editor { get; }
+
+    /// <summary>Takes off what the platform draws around its text field, which the rounded field already frames.</summary>
+    partial void StylePlatformEditor();
 
     internal Button Button { get; }
 

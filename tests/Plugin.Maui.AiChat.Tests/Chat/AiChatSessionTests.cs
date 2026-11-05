@@ -325,6 +325,21 @@ public class AiChatSessionTests
     }
 
     [Fact]
+    public async Task A_call_that_nothing_ran_does_not_stay_in_the_history()
+    {
+        var client = new ScriptedChatClient()
+            .Respond(new ChatResponseUpdate(ChatRole.Assistant, [new FunctionCallContent("c1", "lookup"), new TextContent("Let me look.")]))
+            .RespondText("Still here.");
+        var session = new AiChatSession(client);
+
+        await session.SendAsync("Hi");
+        await session.SendAsync("Again");
+
+        Assert.DoesNotContain(client.Requests[1].SelectMany(m => m.Contents), c => c is FunctionCallContent);
+        Assert.Equal(ToolCallStatus.Canceled, session.Items.OfType<ToolCallItem>().Single().Status);
+    }
+
+    [Fact]
     public async Task A_cut_off_response_drops_a_message_left_with_only_an_unfinished_call()
     {
         var client = new ScriptedChatClient().Respond(token => ScriptedChatClient.StreamThenWait(

@@ -23,6 +23,9 @@
     <PackageReference Include="Microsoft.Maui.Controls" />
     <!-- FunctionInvokingChatClient, to test tool approval against the real protocol. -->
     <PackageReference Include="Microsoft.Extensions.AI" />
+    <!-- The clients of the doc samples (Docs/DocSamplesTests.cs). -->
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+    <PackageReference Include="OllamaSharp" />
   </ItemGroup>
 
   <ItemGroup>

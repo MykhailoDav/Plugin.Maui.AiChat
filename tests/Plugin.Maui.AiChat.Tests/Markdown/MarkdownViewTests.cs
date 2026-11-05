@@ -171,10 +171,10 @@ public class MarkdownViewTests
     [Fact]
     public void Renders_a_table_with_a_bold_header_and_aligned_columns()
     {
-        var scroll = Assert.IsType<ScrollView>(Assert.Single(Render("| L | C | R | D |\n|:--|:-:|--:|---|\n| a | **b** | c | |").Blocks));
+        var frame = Assert.IsType<Border>(Assert.Single(Render("| L | C | R | D |\n|:--|:-:|--:|---|\n| a | **b** | c | |").Blocks));
 
-        Assert.Equal(ScrollOrientation.Horizontal, scroll.Orientation);
-        var grid = Assert.IsType<Grid>(((Border)scroll.Content).Content);
+        var grid = Assert.IsType<Grid>(frame.Content);
+        Assert.All(grid.ColumnDefinitions, c => Assert.True(c.Width.IsStar));
         Assert.Equal(4, grid.ColumnDefinitions.Count);
         Assert.Equal(2, grid.RowDefinitions.Count);
 
@@ -195,8 +195,8 @@ public class MarkdownViewTests
     [Fact]
     public void Renders_cells_beyond_the_header_columns()
     {
-        var scroll = Assert.IsType<ScrollView>(Assert.Single(Render("| a | b |\n|---|---|\n| 1 | 2 | 3 |").Blocks));
-        var grid = Assert.IsType<Grid>(Assert.IsType<Border>(scroll.Content).Content);
+        var frame = Assert.IsType<Border>(Assert.Single(Render("| a | b |\n|---|---|\n| 1 | 2 | 3 |").Blocks));
+        var grid = Assert.IsType<Grid>(frame.Content);
 
         Assert.Equal(3, grid.ColumnDefinitions.Count);
         var extra = Assert.IsAssignableFrom<Label>(Assert.IsType<ContentView>(grid.Children[^1]).Content);

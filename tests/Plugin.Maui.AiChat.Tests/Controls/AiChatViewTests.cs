@@ -162,11 +162,11 @@ public class AiChatViewTests
         var selector = (DataTemplateSelector)view.List.ItemTemplate;
         var row = (View)selector.SelectTemplate(session.Items[1], view.List).CreateContent();
 
-        row.Layout(new Rect(0, 0, 300, 100));
+        ((IView)row).Arrange(new Rect(0, 0, 300, 100));
         Assert.Equal([1], scrolls);
 
         view.Follow.OnScrolled(-40, 0, 0, 2, 100);
-        row.Layout(new Rect(0, 0, 300, 200));
+        ((IView)row).Arrange(new Rect(0, 0, 300, 200));
         Assert.Equal([1], scrolls);
     }
 
@@ -195,10 +195,10 @@ public class AiChatViewTests
         var view = new AiChatView { Session = session };
         view.ScrollToItem = _ => { };
         var row = (View)((DataTemplateSelector)view.List.ItemTemplate).SelectTemplate(session.Items[1], view.List).CreateContent();
-        row.Layout(new Rect(0, 0, 300, 200));
+        ((IView)row).Arrange(new Rect(0, 0, 300, 200));
         view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = 100, VerticalOffset = 100, LastVisibleItemIndex = 1 });
 
-        row.Layout(new Rect(0, 0, 300, 195));
+        ((IView)row).Arrange(new Rect(0, 0, 300, 195));
         view.List.SendScrolled(new ItemsViewScrolledEventArgs { VerticalDelta = -5, VerticalOffset = 95, LastVisibleItemIndex = 1 });
         Assert.True(view.Follow.IsFollowing);
 

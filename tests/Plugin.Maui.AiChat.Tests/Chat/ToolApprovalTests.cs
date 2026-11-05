@@ -177,4 +177,23 @@ public class ToolApprovalTests
         Assert.Equal(1, _weatherCalls);
         Assert.Single(model.Requests);
     }
+
+    [Fact]
+    public async Task A_tool_that_throws_shows_as_failed_and_the_model_hears_of_it()
+    {
+        var model = new ScriptedChatClient()
+            .Respond(new ChatResponseUpdate(ChatRole.Assistant, [new FunctionCallContent("c1", "broken")]))
+            .RespondText("The tool failed, sorry.");
+        var broken = AIFunctionFactory.Create(string () => throw new InvalidOperationException("Disk full."), "broken");
+        var session = new AiChatSession(model.AsBuilder().UseFunctionInvocation().Build())
+        {
+            Options = new ChatOptions { Tools = [broken] },
+        };
+
+        await session.SendAsync("Run it");
+
+        Assert.Equal(ToolCallStatus.Failed, Assert.IsType<ToolCallItem>(session.Items[1]).Status);
+        Assert.Contains(model.Requests[1].SelectMany(m => m.Contents), c => c is FunctionResultContent { CallId: "c1" });
+        Assert.Equal("The tool failed, sorry.", ((AssistantMessageItem)session.Items[^1]).Text);
+    }
 }
