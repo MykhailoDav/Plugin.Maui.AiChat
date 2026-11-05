@@ -1,6 +1,6 @@
 # Plugin.Maui.AiChat: complete reference
 
-This file is for AI coding assistants. It describes the whole public API of Plugin.Maui.AiChat 0.1, its behavior, and
+This file is for AI coding assistants. It describes the whole public API of Plugin.Maui.AiChat 1.0, its behavior, and
 the mistakes to avoid. Everything not listed here does not exist.
 
 ## Setup
@@ -129,11 +129,11 @@ reflection (trimmed or AOT apps).
 - Keyboard: on load it adds `SafeAreaRegions.SoftInput` to the bottom safe area of its `ContentPage`, unless the app set
   the page's `SafeAreaEdges`; on Android it also makes the window resize instead of pan while it is loaded.
 - Light and dark themes follow the app theme. Text colors, surfaces and fonts are not configurable beyond `AccentColor`
-  in 0.1. The app's implicit `Button` and `Editor` styles reach the parts.
+  in 1.0. The app's implicit `Button` and `Editor` styles reach the parts.
 - Automation ids: `AiChatList`, `AiChatMessageField`, `AiChatSendButton`, `AiChatUserMessage`, `AiChatAnswer`,
   `AiChatCopyAnswer`, `AiChatCopyCode`, `AiChatReasoning`, `AiChatToolStatus`, `AiChatApprove`, `AiChatReject`,
   `AiChatError`, `AiChatRetry`.
-- Not available in 0.1: custom row templates, localization of the view's texts, avatars, timestamps, suggestions chips
+- Not available in 1.0: custom row templates, localization of the view's texts, avatars, timestamps, suggestions chips
   (use `EmptyView`), attachments, voice, Enter to send.
 
 ## MarkdownView (ContentView)

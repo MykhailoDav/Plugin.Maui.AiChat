@@ -12,8 +12,6 @@ managed code, with no setup call and no framework to adopt.
 
 ![The sample app on iOS: a streamed Markdown answer with a list, code and a table; a tool call waiting for approval above the keyboard; and the conversation restored after a restart, in the dark theme](https://raw.githubusercontent.com/MykhailoDav/Plugin.Maui.AiChat/main/docs/images/screenshots.png)
 
-> **Before 1.0.** The API can still change between minor versions until 1.0.
-
 ## Features
 
 - **Any model.** Everything goes through `IChatClient`, so the provider is one line of your code and can change without
