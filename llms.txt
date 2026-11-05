@@ -1,0 +1,23 @@
+# Plugin.Maui.AiChat
+
+> A NuGet AI chat for .NET MAUI (Android, iOS, Mac Catalyst, Windows) on any Microsoft.Extensions.AI `IChatClient`. It streams answers as Markdown that does not flicker, shows tool calls with Approve and Reject for `ApprovalRequiredAIFunction`, shows reasoning, and has Stop, Retry and Copy. The history is the standard `ChatMessage` list. A standalone `MarkdownView` renders streaming Markdown.
+
+Install with `dotnet add package Plugin.Maui.AiChat` (needs .NET 10). There is nothing to register in MauiProgram.cs. XAML namespace: `xmlns:chat="clr-namespace:Plugin.Maui.AiChat;assembly=Plugin.Maui.AiChat"`; the conversation is `AiChatSession` (keep it in the view model) and the view is `AiChatView Session="{Binding Chat}"`.
+
+Before writing code with this package, read llms-full.txt: it lists every member with its default, the behavior rules that cause most bugs (for example, `SendAsync` does not throw when the client fails, and tools need `UseFunctionInvocation()` in the client pipeline), and the APIs that do not exist.
+
+## Docs
+
+- [llms-full.txt](https://raw.githubusercontent.com/MykhailoDav/Plugin.Maui.AiChat/main/llms-full.txt): complete reference for AI coding assistants: API, behavior, recipes, non-existent APIs
+- [README](https://raw.githubusercontent.com/MykhailoDav/Plugin.Maui.AiChat/main/README.md): documentation for people
+- [CHANGELOG](https://raw.githubusercontent.com/MykhailoDav/Plugin.Maui.AiChat/main/CHANGELOG.md): changes of every version
+
+## Samples
+
+- [Sample app pages](https://github.com/MykhailoDav/Plugin.Maui.AiChat/tree/main/samples/Plugin.Maui.AiChat.Sample/Pages): the chat with an empty view, a Markdown playground, and choosing a model
+- [Sample view models and services](https://github.com/MykhailoDav/Plugin.Maui.AiChat/tree/main/samples/Plugin.Maui.AiChat.Sample): a view model that owns the session and saves it, a client factory with tools and approval, and an offline demo client
+
+## Optional
+
+- [Architecture](https://raw.githubusercontent.com/MykhailoDav/Plugin.Maui.AiChat/main/docs/architecture.md): how the session builds the rows, how Markdown streams, following the end and the keyboard
+- [Issues](https://github.com/MykhailoDav/Plugin.Maui.AiChat/issues)

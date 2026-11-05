@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  INTERNET reaches the model's endpoint. Cleartext traffic lets the sample talk to a model on the local network over
+  plain HTTP, such as Ollama on the development machine (http://10.0.2.2:11434 from the emulator); a real app should not
+  allow it.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.INTERNET" />
+  <application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:usesCleartextTraffic="true"></application>
+</manifest>

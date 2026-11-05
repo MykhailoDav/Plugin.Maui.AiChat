@@ -1,0 +1,171 @@
+name: UI tests
+
+# Runs the Appium UI tests (tests/Plugin.Maui.AiChat.UITests) on an iOS simulator and an Android emulator for
+# every pull request into main, after every merge into main and on demand.
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# A new push to a pull request cancels the run for the previous one; every merge into main is checked.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+# The workload set for the SDK in global.json, and the Xcode its iOS workload needs. Update them together.
+env:
+  DOTNET_WORKLOAD_VERSION: 10.0.400.1
+  XCODE_VERSION: '26.6'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  ios:
+    name: iOS
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      UITEST_PLATFORM: ios
+      UITEST_DEVICE: iPhone 17
+      UITEST_PLATFORM_VERSION: '26.5'
+      # The simulator the iOS baselines were recorded on, so the screenshots are compared too.
+      UITEST_SCREENSHOTS: 'on'
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: Select Xcode
+      run: sudo xcode-select --switch "/Applications/Xcode_${XCODE_VERSION}.app"
+    # The first boot of a simulator takes minutes, so it boots while the next steps run.
+    - name: Start booting the simulator
+      run: |
+        udid=$(xcrun simctl list devices available --json | jq -r \
+          --arg runtime "com.apple.CoreSimulator.SimRuntime.iOS-${UITEST_PLATFORM_VERSION//./-}" --arg name "$UITEST_DEVICE" \
+          '.devices[$runtime][]? | select(.name == $name) | .udid')
+        if [ -z "$udid" ]; then
+          echo "::error::There is no $UITEST_DEVICE simulator with iOS $UITEST_PLATFORM_VERSION on this runner."
+          exit 1
+        fi
+        echo "SIMULATOR_UDID=$udid" >> "$GITHUB_ENV"
+        xcrun simctl boot "$udid"
+    - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      with:
+        global-json-file: global.json
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 24
+    - name: Install .NET MAUI
+      run: dotnet workload install maui --version "$DOTNET_WORKLOAD_VERSION"
+    - name: Install Appium
+      working-directory: tests/Plugin.Maui.AiChat.UITests
+      run: npm ci
+    # Otherwise Appium builds it when the first test starts, which together with the boot can take longer than the
+    # tests wait for the app.
+    - name: Build WebDriverAgent
+      working-directory: tests/Plugin.Maui.AiChat.UITests
+      env:
+        APPIUM_HOME: ${{ github.workspace }}/tests/Plugin.Maui.AiChat.UITests
+      run: npx appium driver run xcuitest build-wda --name "$UITEST_DEVICE" --sdk "$UITEST_PLATFORM_VERSION"
+    - name: Build the host app
+      run: dotnet build tests/Plugin.Maui.AiChat.UITests.HostApp -f net10.0-ios
+    - name: Wait for the simulator
+      run: xcrun simctl bootstatus "$SIMULATOR_UDID"
+    - name: Run the UI tests
+      run: dotnet test --project tests/Plugin.Maui.AiChat.UITests --output Detailed
+    # The screenshots of failed comparisons, the screen and element tree of failed tests, and the Appium log.
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      if: ${{ !cancelled() }}
+      with:
+        name: ui-tests-ios
+        path: tests/Plugin.Maui.AiChat.UITests/TestResults/
+        if-no-files-found: ignore
+
+  android:
+    name: Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      UITEST_PLATFORM: android
+      # The emulator is not the device the Android baselines were recorded on, so only the behavior is checked.
+      UITEST_SCREENSHOTS: 'off'
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      with:
+        global-json-file: global.json
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 24
+    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      with:
+        distribution: microsoft
+        java-version: 21
+    - name: Enable KVM for the emulator
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+    - name: Install .NET MAUI
+      run: dotnet workload install maui-android --version "$DOTNET_WORKLOAD_VERSION"
+    - name: Install Appium
+      working-directory: tests/Plugin.Maui.AiChat.UITests
+      run: npm ci
+    - name: Build the host app
+      run: dotnet build tests/Plugin.Maui.AiChat.UITests.HostApp -f net10.0-android
+    - name: Start an emulator
+      # Android 16, as the emulator the Android baselines were recorded on. On the runner's software GPU, Android 17's
+      # SurfaceFlinger aborts in its region sampling thread (hasReadColorBufferDma) and restarts the system server again
+      # and again. The screenshots are not compared here: the runner's device profile differs.
+      run: |
+        tools="$ANDROID_HOME/cmdline-tools/latest/bin"
+        image='system-images;android-36;google_apis;x86_64'
+        # avdmanager and the emulator otherwise disagree about where the AVD lives.
+        export ANDROID_AVD_HOME="$HOME/.android/avd"
+        mkdir -p "$ANDROID_AVD_HOME"
+        yes 2> /dev/null | "$tools/sdkmanager" --licenses > /dev/null
+        "$tools/sdkmanager" --install emulator platform-tools "$image" > /dev/null
+        echo no | "$tools/avdmanager" create avd --force --name test --package "$image" --device pixel_7
+        echo 'hw.cpu.ncore=4' >> "$ANDROID_AVD_HOME/test.avd/config.ini"
+        # The default data partition is too small to install the host app, whose Debug APK carries its assemblies.
+        nohup "$ANDROID_HOME/emulator/emulator" -avd test -port 5554 -partition-size 6144 -no-window \
+          -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim > "$RUNNER_TEMP/emulator.log" 2>&1 &
+        echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+    - name: Wait for the emulator
+      # sys.boot_completed is set before every system service is up, and the system server can still restart on a slow
+      # runner, so the setup is repeated until all of it goes through in one pass. Pressing the menu key needs the
+      # input service the tests use, and unlocks the screen. System apps such as the launcher stop responding at times
+      # on a slow runner; their dialogs would cover the app, so they are turned off and any that is open is closed.
+      timeout-minutes: 10
+      run: |
+        adb wait-for-device
+        until [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 ] \
+          && adb shell input keyevent 82 \
+          && adb shell settings put global window_animation_scale 0 \
+          && adb shell settings put global transition_animation_scale 0 \
+          && adb shell settings put global animator_duration_scale 0 \
+          && adb shell settings put global hide_error_dialogs 1 \
+          && adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null
+        do
+          sleep 5
+        done
+    - name: Run the UI tests on the emulator
+      run: dotnet test --project tests/Plugin.Maui.AiChat.UITests --output Detailed
+    - name: Save the emulator's system log
+      if: ${{ failure() }}
+      run: adb logcat -d -b main -b system -b crash > "$RUNNER_TEMP/logcat.txt" || true
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      if: ${{ !cancelled() }}
+      with:
+        name: ui-tests-android
+        path: |
+          tests/Plugin.Maui.AiChat.UITests/TestResults/
+          ${{ runner.temp }}/emulator.log
+          ${{ runner.temp }}/logcat.txt
+        if-no-files-found: ignore

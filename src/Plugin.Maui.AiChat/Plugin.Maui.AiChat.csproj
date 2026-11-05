@@ -1,0 +1,121 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      The plain net10.0 target holds only the shared code. The unit tests run against it without a device, and
+      NuGet uses it for net10.0 projects that are not MAUI apps.
+    -->
+    <TargetFrameworks>net10.0;net10.0-android</TargetFrameworks>
+    <!-- There are no iOS and Mac Catalyst workloads on Linux. -->
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+    <!-- The Windows App SDK builds only on Windows. -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+    <!-- eng/update-public-api.sh builds one target at a time, because dotnet format fixes only the first target. -->
+    <TargetFrameworks Condition="'$(AICHAT_SINGLE_TARGET)' != ''">$(AICHAT_SINGLE_TARGET)</TargetFrameworks>
+
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <RootNamespace>Plugin.Maui.AiChat</RootNamespace>
+    <!-- The library has no Android resources, so it needs no public Resource class. -->
+    <AndroidGenerateResourceDesigner>false</AndroidGenerateResourceDesigner>
+
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+    <!--
+      The library has no Windows resources, so it needs no PRI files. Otherwise the Windows App SDK hands the PRI files
+      of the MAUI version the library compiles against (10.0.0) to every app that references the project, both as build
+      output and unpacked into files, and an app on another MAUI version gets two different copies of MAUI's resources
+      (PRI277).
+    -->
+    <AppxGeneratePriEnabled Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</AppxGeneratePriEnabled>
+    <IncludeProjectPriFile Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</IncludeProjectPriFile>
+    <IncludePriFilesOutputGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</IncludePriFilesOutputGroup>
+
+    <!--
+      The library uses no reflection, so it is safe for trimming and Native AOT. Marking it makes apps trim it and
+      runs the analyzers on every target. Without _MauiDoNotConfigureTrimAnalyzer the MAUI build turns the trim
+      analyzer off and hides its warnings (xamarin/xamarin-macios#21351).
+    -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <_MauiDoNotConfigureTrimAnalyzer>true</_MauiDoNotConfigureTrimAnalyzer>
+
+    <!-- Every public member is documented. -->
+    <WarningsAsErrors>$(WarningsAsErrors);CS1591</WarningsAsErrors>
+
+    <!-- NuGet -->
+    <PackageId>Plugin.Maui.AiChat</PackageId>
+    <Version>0.1.0</Version>
+    <Title>AI chat view for .NET MAUI</Title>
+    <Description>A drop-in AI chat view for .NET MAUI on any Microsoft.Extensions.AI IChatClient: streamed answers rendered as Markdown that does not flicker, tool calls with an approval step, reasoning, stop and retry. Includes a streaming-safe MarkdownView. Android, iOS, Mac Catalyst and Windows; no framework to adopt, pure managed code.</Description>
+    <PackageTags>maui;dotnet-maui;ai;chat;chatbot;llm;openai;ollama;microsoft-extensions-ai;ichatclient;markdown;streaming</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>nuget.png</PackageIcon>
+    <PackageReleaseNotes>https://github.com/MykhailoDav/Plugin.Maui.AiChat/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      The lowest MAUI 10 version, so that any MAUI 10 app can use the package: a new app references the MauiVersion of
+      its workload, which is often older than the latest MAUI, and NuGet refuses a package that needs a newer one (NU1605).
+      Compiling against it also keeps the library off APIs that later versions added. The tests and apps run on the
+      version in Directory.Packages.props.
+    -->
+    <PackageReference Include="Microsoft.Maui.Controls" VersionOverride="10.0.0" />
+    <!-- 10.11.0 is the first version in which tool approval (ToolApprovalRequestContent) is not experimental. -->
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+    <PackageReference Include="Markdig" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    Platform code is chosen by file suffix, so a feature's shared and platform files sit side by side:
+    *.android.cs, *.macios.cs (iOS and Mac Catalyst), *.windows.cs, and *.net.cs for the plain net10.0 target.
+  -->
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'android'">
+    <Compile Remove="**\*.android.cs" />
+    <None Include="**\*.android.cs" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'ios' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'maccatalyst'">
+    <Compile Remove="**\*.macios.cs" />
+    <None Include="**\*.macios.cs" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'">
+    <Compile Remove="**\*.windows.cs" />
+    <None Include="**\*.windows.cs" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != ''">
+    <Compile Remove="**\*.net.cs" />
+    <None Include="**\*.net.cs" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+  </ItemGroup>
+
+  <!-- The public API of each target is tracked in PublicAPI/<target>, because platform types differ between targets. -->
+  <PropertyGroup>
+    <_PublicApiTarget>net</_PublicApiTarget>
+    <_PublicApiTarget Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != ''">net-$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)'))</_PublicApiTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="PublicAPI\$(_PublicApiTarget)\PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI\$(_PublicApiTarget)\PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Plugin.Maui.AiChat.Tests" />
+  </ItemGroup>
+
+  <!-- Package content -->
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <!-- Drawn by eng/package-icon/make-icon.cs. -->
+    <None Include="..\..\nuget.png" Pack="true" PackagePath="\" />
+    <!-- The reference for AI coding assistants, at the package root as in other Plugin.Maui packages. -->
+    <None Include="..\..\llms-full.txt" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

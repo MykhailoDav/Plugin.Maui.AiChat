@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Which model the chat talks to. Any OpenAI-compatible endpoint works: OpenAI, Azure OpenAI, Ollama, LM Studio. -->
+<ContentPage x:Class="Plugin.Maui.AiChat.Sample.Pages.ModelPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Plugin.Maui.AiChat.Sample.ViewModels"
+             x:DataType="vm:ModelViewModel"
+             Title="Model">
+
+  <ScrollView>
+    <VerticalStackLayout Padding="16" Spacing="12">
+      <Border Style="{StaticResource Card}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <VerticalStackLayout Spacing="2">
+            <Label Text="Demo model" FontAttributes="Bold" />
+            <Label Style="{StaticResource Caption}" Text="Offline, canned answers. No key needed." />
+          </VerticalStackLayout>
+          <Switch Grid.Column="1" IsToggled="{Binding UseDemo}" VerticalOptions="Center" AutomationId="UseDemo" />
+        </Grid>
+      </Border>
+
+      <Label Style="{StaticResource Section}" Text="OpenAI-compatible endpoint" />
+      <HorizontalStackLayout Spacing="8">
+        <Button Style="{StaticResource SecondaryButton}" Text="OpenAI" Command="{Binding UseOpenAICommand}" />
+        <Button Style="{StaticResource SecondaryButton}" Text="Ollama on this machine" Command="{Binding UseOllamaCommand}" />
+      </HorizontalStackLayout>
+      <Border Style="{StaticResource Card}">
+        <VerticalStackLayout Spacing="4">
+          <Label Style="{StaticResource Caption}" Text="Endpoint" />
+          <Entry Text="{Binding Endpoint}" Keyboard="Url" Placeholder="https://api.openai.com/v1" />
+          <Label Style="{StaticResource Caption}" Text="Model" />
+          <Entry Text="{Binding Model}" Placeholder="gpt-5-mini" />
+          <Label Style="{StaticResource Caption}" Text="API key (kept in secure storage)" />
+          <Entry Text="{Binding ApiKey}" IsPassword="True" Placeholder="sk-…" />
+          <Label Style="{StaticResource Caption}" Text="Instructions (system prompt)" />
+          <Editor Text="{Binding Instructions}" AutoSize="TextChanges" />
+        </VerticalStackLayout>
+      </Border>
+
+      <Button Text="Use this model" Command="{Binding SaveCommand}" AutomationId="SaveModel" />
+      <Label Style="{StaticResource Caption}"
+             Text="Tools: get_weather asks for your approval first; get_time runs right away. The conversation carries over to the new model." />
+    </VerticalStackLayout>
+  </ScrollView>
+
+</ContentPage>

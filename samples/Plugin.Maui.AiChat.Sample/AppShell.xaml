@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Each tab shows one part of the package. Shell creates the pages through dependency injection (see MauiProgram). -->
+<Shell x:Class="Plugin.Maui.AiChat.Sample.AppShell"
+       xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:pages="clr-namespace:Plugin.Maui.AiChat.Sample.Pages"
+       Title="AI Chat"
+       FlyoutBehavior="Disabled">
+
+  <TabBar>
+    <ShellContent Title="Chat" Icon="tab_chat.png" Route="chat" ContentTemplate="{DataTemplate pages:ChatPage}" />
+    <ShellContent Title="Markdown" Icon="tab_markdown.png" Route="markdown" ContentTemplate="{DataTemplate pages:MarkdownPage}" />
+    <ShellContent Title="Model" Icon="tab_model.png" Route="model" ContentTemplate="{DataTemplate pages:ModelPage}" />
+  </TabBar>
+
+</Shell>

@@ -1,0 +1,42 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="Library">
+    <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.110" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.11.0" />
+    <PackageVersion Include="Markdig" Version="1.5.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Apps">
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.11.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Unit tests">
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="coverlet.MTP" Version="10.1.0" />
+    <!-- The clients the doc samples use, so the samples keep compiling. -->
+    <PackageVersion Include="OllamaSharp" Version="5.5.0" />
+    <PackageVersion Include="Anthropic" Version="13.5.0" />
+    <PackageVersion Include="Google.GenAI" Version="1.28.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Engineering">
+    <!-- Renders nuget.png in eng/package-icon/make-icon.cs. -->
+    <PackageVersion Include="Svg.Skia" Version="5.2.3" />
+  </ItemGroup>
+
+  <ItemGroup Label="UI tests">
+    <PackageVersion Include="NUnit" Version="5.0.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="6.3.1" />
+    <PackageVersion Include="Appium.WebDriver" Version="9.0.0" />
+    <PackageVersion Include="StbImageSharp" Version="2.30.16" />
+    <PackageVersion Include="StbImageWriteSharp" Version="1.16.7" />
+  </ItemGroup>
+
+</Project>
