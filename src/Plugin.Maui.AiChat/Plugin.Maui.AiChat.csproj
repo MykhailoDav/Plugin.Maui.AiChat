@@ -48,7 +48,7 @@
 
     <!-- NuGet -->
     <PackageId>Plugin.Maui.AiChat</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Title>AI chat view for .NET MAUI</Title>
     <Description>A drop-in AI chat view for .NET MAUI on any Microsoft.Extensions.AI IChatClient: streamed answers rendered as Markdown that does not flicker, tool calls with an approval step, reasoning, stop and retry. Includes a streaming-safe MarkdownView. Android, iOS, Mac Catalyst and Windows; no framework to adopt, pure managed code.</Description>
     <PackageTags>maui;dotnet-maui;ai;chat;chatbot;llm;openai;ollama;microsoft-extensions-ai;ichatclient;markdown;streaming</PackageTags>
