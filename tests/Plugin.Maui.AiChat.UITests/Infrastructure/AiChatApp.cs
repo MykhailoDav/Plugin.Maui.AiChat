@@ -260,9 +260,16 @@ public sealed class AiChatApp : IDisposable
     /// <summary>Types <paramref name="text"/> into the message field and taps Send.</summary>
     public void Send(string text)
     {
-        var field = Element("AiChatMessageField");
-        field.Click();
-        field.SendKeys(text);
+        Tap("AiChatMessageField");
+        try
+        {
+            Element("AiChatMessageField").SendKeys(text);
+        }
+        catch (StaleElementReferenceException)
+        {
+            // On Android the keyboard coming up resizes the window, and the field found a moment ago can go stale.
+            Element("AiChatMessageField").SendKeys(text);
+        }
 
         // The keyboard is still coming up and the layout moves the button; a tap at its old place hits nothing.
         var previous = Point.Empty;
