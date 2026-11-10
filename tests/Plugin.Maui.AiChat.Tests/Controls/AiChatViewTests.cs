@@ -25,6 +25,16 @@ public class AiChatViewTests
     }
 
     [Fact]
+    public void Keeps_the_space_after_the_last_row_clear_of_the_apps_BoxView_style()
+    {
+        // The MAUI template's implicit BoxView style sets a dark BackgroundColor; a local value wins over it.
+        var footer = Assert.IsType<BoxView>(new AiChatView().List.Footer);
+
+        Assert.Equal(Colors.Transparent, footer.BackgroundColor);
+        Assert.Equal(Colors.Transparent, footer.Color);
+    }
+
+    [Fact]
     public void Passes_its_properties_to_the_parts()
     {
         var empty = new Label { Text = "Ask me anything" };

@@ -48,7 +48,8 @@ public partial class AiChatView : ContentView
             AutomationId = "AiChatList",
             SelectionMode = SelectionMode.None,
             ItemTemplate = new ChatItemTemplateSelector(this),
-            Footer = new BoxView { HeightRequest = 8, Color = Colors.Transparent },
+            // BackgroundColor too: the MAUI template's implicit BoxView style paints it dark.
+            Footer = new BoxView { HeightRequest = 8, Color = Colors.Transparent, BackgroundColor = Colors.Transparent },
         };
         List.Scrolled += (_, e) => _follow.OnScrolled(e.VerticalDelta, e.VerticalOffset, e.LastVisibleItemIndex, Session?.Items.Count ?? 0, List.Height);
         Input = new ChatInputBar(this);
