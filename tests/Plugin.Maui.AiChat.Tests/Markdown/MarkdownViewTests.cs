@@ -163,7 +163,8 @@ public class MarkdownViewTests
     {
         var quote = Assert.IsType<Grid>(Assert.Single(Render("> quoted\n>\n> more").Blocks));
 
-        Assert.IsType<BoxView>(quote.Children[0]);
+        // Set here, so an app's implicit BoxView style (the MAUI template paints one dark) does not show at the corners.
+        Assert.Equal(Colors.Transparent, Assert.IsType<BoxView>(quote.Children[0]).BackgroundColor);
         var content = Assert.IsType<VerticalStackLayout>(quote.Children[1]);
         Assert.Equal(2, content.Count);
     }
@@ -209,7 +210,7 @@ public class MarkdownViewTests
     {
         var view = Render("---\n\n<div>raw</div>");
 
-        Assert.IsType<BoxView>(view.Blocks[0]);
+        Assert.Equal(Colors.Transparent, Assert.IsType<BoxView>(view.Blocks[0]).BackgroundColor);
         Assert.Equal("<div>raw</div>", ((Label)view.Blocks[1]).Text);
     }
 

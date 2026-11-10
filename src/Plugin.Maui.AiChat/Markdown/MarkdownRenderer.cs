@@ -103,7 +103,8 @@ internal sealed partial class MarkdownRenderer(MarkdownStyle style)
 
     private static BoxView Rule()
     {
-        var rule = new BoxView { HeightRequest = 1, Margin = new Thickness(0, 4) };
+        // BackgroundColor overrides the app's implicit BoxView style (the MAUI template's is dark).
+        var rule = new BoxView { HeightRequest = 1, Margin = new Thickness(0, 4), BackgroundColor = Colors.Transparent };
         ChatTheme.Apply(rule, BoxView.ColorProperty, ChatTheme.Line);
         return rule;
     }
@@ -159,7 +160,7 @@ internal sealed partial class MarkdownRenderer(MarkdownStyle style)
             ColumnDefinitions = { new ColumnDefinition(3), new ColumnDefinition(GridLength.Star) },
             ColumnSpacing = 10,
         };
-        var bar = new BoxView { CornerRadius = 1.5 };
+        var bar = new BoxView { CornerRadius = 1.5, BackgroundColor = Colors.Transparent };
         ChatTheme.Apply(bar, BoxView.ColorProperty, ChatTheme.Line);
         grid.Add(bar);
         grid.Add(Children(quote), 1);
