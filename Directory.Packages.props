@@ -7,7 +7,7 @@
   <ItemGroup Label="Library">
     <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.120" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.11.0" />
-    <PackageVersion Include="Markdig" Version="1.5.1" />
+    <PackageVersion Include="Markdig" Version="1.6.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
   </ItemGroup>
 
@@ -21,7 +21,7 @@
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="coverlet.MTP" Version="10.1.0" />
     <!-- The clients the doc samples use, so the samples keep compiling. -->
-    <PackageVersion Include="OllamaSharp" Version="5.5.0" />
+    <PackageVersion Include="OllamaSharp" Version="5.5.2" />
     <PackageVersion Include="Anthropic" Version="13.5.0" />
     <PackageVersion Include="Google.GenAI" Version="1.28.0" />
   </ItemGroup>
